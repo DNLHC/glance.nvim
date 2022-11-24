@@ -233,7 +233,7 @@ function Preview:update(item, group)
 
   vim.api.nvim_win_set_cursor(
     self.winnr,
-    { item.start.line + 1, item.start.character - 1 }
+    { item.start.line + 1, item.start.character }
   )
   vim.api.nvim_win_call(self.winnr, function()
     vim.cmd('norm! zz zv')
