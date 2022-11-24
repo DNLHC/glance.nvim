@@ -2,6 +2,8 @@
 
 A pretty window for previewing, navigating and editing your LSP locations in one place, inspired by vscode's peek preview.
 
+![Glance references screenshot](https://i.imgur.com/86K5ljv.png)
+
 ## Requirements
 
 - Properly configured LSP client
