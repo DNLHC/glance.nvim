@@ -35,34 +35,7 @@ local buf_opts = {
 function List.create(opts)
   opts = opts or {}
   local bufnr = vim.api.nvim_create_buf(false, true)
-  local parent_win_width = vim.fn.winwidth(opts.parent_winnr)
-
-  local win_col = 0
-  if config.options.list.position == 'right' then
-    win_col = parent_win_width - opts.list_width
-  end
-
-  local border_opts = config.options.border
-
-  local winnr = vim.api.nvim_open_win(bufnr, true, {
-    relative = 'win',
-    style = 'minimal',
-    row = opts.row,
-    col = win_col,
-    win = opts.parent_winnr,
-    width = opts.list_width,
-    height = config.options.height,
-    border = border_opts.enable and {
-      '',
-      { border_opts.top_char, 'GlanceBorderTop' },
-      '',
-      '',
-      '',
-      { border_opts.bottom_char, 'GlanceListBorderBottom' },
-      '',
-      '',
-    } or 'none',
-  })
+  local winnr = vim.api.nvim_open_win(bufnr, true, opts.win_opts)
 
   local list = List:new(bufnr, winnr, opts.results)
   list:setup(opts)

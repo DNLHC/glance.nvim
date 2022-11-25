@@ -145,4 +145,20 @@ function utils.info(msg)
   log(msg, vim.log.levels.ERROR)
 end
 
+function utils.debounce(fn, delay)
+  local timer = nil
+  return function(...)
+    local args = { ... }
+    if timer then
+      timer:stop()
+      timer = nil
+    end
+
+    timer = vim.defer_fn(function()
+      fn(unpack(args))
+      timer = nil
+    end, delay)
+  end
+end
+
 return utils

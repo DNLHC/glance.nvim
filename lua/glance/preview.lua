@@ -57,36 +57,9 @@ function Preview.create(opts)
 end
 
 function Preview:new(opts)
-  local parent_win_width = vim.fn.winwidth(opts.parent_winnr)
-
-  local win_col = 0
-  if config.options.list.position == 'left' then
-    win_col = opts.list_width
-  end
-
   win_opts.number = vim.api.nvim_win_get_option(opts.parent_winnr, 'number')
 
-  local border_opts = config.options.border
-
-  local winnr = vim.api.nvim_open_win(opts.preview_bufnr, false, {
-    relative = 'win',
-    style = 'minimal',
-    row = opts.row,
-    col = win_col,
-    width = parent_win_width - opts.list_width,
-    win = opts.parent_winnr,
-    height = config.options.height,
-    border = border_opts.enable and {
-      '',
-      { border_opts.top_char, 'GlanceBorderTop' },
-      '',
-      '',
-      '',
-      { border_opts.bottom_char, 'GlancePreviewBorderBottom' },
-      '',
-      '',
-    } or 'none',
-  })
+  local winnr = vim.api.nvim_open_win(opts.preview_bufnr, false, opts.win_opts)
 
   local scope = {
     winnr = winnr,

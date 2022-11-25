@@ -18,6 +18,56 @@ function Glance.setup(opts)
   initialized = true
 end
 
+local function get_border_opts(win)
+  local border_opts = config.options.border
+  local border_bottom_hl = ('Glance%sBorderBottom'):format(
+    utils.capitalize(win)
+  )
+  return border_opts.enable
+      and {
+        '',
+        { border_opts.top_char, 'GlanceBorderTop' },
+        '',
+        '',
+        '',
+        { border_opts.bottom_char, border_bottom_hl },
+        '',
+        '',
+      }
+    or 'none'
+end
+
+local function get_win_opts(winnr, line)
+  local win_width = vim.fn.winwidth(winnr)
+  local list_width = utils.round(
+    win_width * math.min(0.5, math.max(0.1, config.options.list.width))
+  )
+  local preview_width = win_width - list_width
+  local height = config.options.height
+  local list_pos = config.options.list.position
+  local win_opts = {
+    relative = 'win',
+    style = 'minimal',
+    height = height,
+    win = winnr,
+    row = line,
+  }
+
+  local list_win_opts = vim.tbl_extend('keep', {
+    width = list_width,
+    col = list_pos == 'left' and 0 or preview_width,
+    border = get_border_opts('list'),
+  }, win_opts)
+
+  local preview_win_opts = vim.tbl_extend('keep', {
+    width = preview_width,
+    col = list_pos == 'left' and list_width or 0,
+    border = get_border_opts('preview'),
+  }, win_opts)
+
+  return list_win_opts, preview_win_opts
+end
+
 local function create(results, parent_bufnr, parent_winnr, params, method)
   glance = Glance:create({
     bufnr = parent_bufnr,
@@ -28,6 +78,7 @@ local function create(results, parent_bufnr, parent_winnr, params, method)
   })
 
   local augroup = vim.api.nvim_create_augroup('Glance', { clear = true })
+
   vim.api.nvim_create_autocmd('CursorMoved', {
     group = augroup,
     buffer = glance.list.bufnr,
@@ -41,10 +92,18 @@ local function create(results, parent_bufnr, parent_winnr, params, method)
     pattern = {
       tostring(glance.list.winnr),
       tostring(glance.preview.winnr),
+      tostring(parent_winnr),
     },
     callback = function()
       Glance.actions.close()
     end,
+  })
+
+  vim.api.nvim_create_autocmd('WinScrolled', {
+    group = augroup,
+    callback = utils.debounce(function()
+      glance:on_resize()
+    end, 50),
   })
 end
 
@@ -165,12 +224,8 @@ Glance.actions = {
 
 function Glance:create(opts)
   local row = self:scroll_into_view(opts.winnr, opts.params.position)
-  local list_width = utils.round(
-    vim.fn.winwidth(opts.winnr)
-      * math.min(0.5, math.max(0.1, config.options.list.width))
-  )
-
   local push_tagstack = utils.create_push_tagstack(opts.winnr)
+  local list_win_opts, preview_win_opts = get_win_opts(opts.winnr, row)
 
   local list = require('glance.list').create({
     results = opts.results,
@@ -178,14 +233,12 @@ function Glance:create(opts)
     uri = opts.params.textDocument.uri,
     pos = opts.params.position,
     method = opts.method,
-    row = row,
-    list_width = list_width,
+    win_opts = list_win_opts,
   })
   local preview = require('glance.preview').create({
     parent_winnr = opts.winnr,
     parent_bufnr = opts.bufnr,
-    row = row,
-    list_width = list_width,
+    win_opts = preview_win_opts,
     preview_bufnr = list:get_current_item().bufnr,
   })
 
@@ -195,10 +248,18 @@ function Glance:create(opts)
     push_tagstack = push_tagstack,
     parent_winnr = opts.winnr,
     parent_bufnr = opts.bufnr,
+    row = row,
   }
 
   setmetatable(scope, self)
   return scope
+end
+
+function Glance:on_resize()
+  local list_win_opts, preview_win_opts =
+    get_win_opts(self.parent_winnr, self.row)
+  vim.api.nvim_win_set_config(self.list.winnr, list_win_opts)
+  vim.api.nvim_win_set_config(self.preview.winnr, preview_win_opts)
 end
 
 function Glance:scroll_into_view(winnr, position)
