@@ -7,6 +7,7 @@ Table of Contents                                   *glance-table-of-contents*
   - Requirements                                         |glance-requirements|
   - Install                                                   |glance-install|
   - Configuration                                       |glance-configuration|
+  - Hooks                                                       |glance-hooks|
   - Usage                                                       |glance-usage|
   - Highlights                                             |glance-highlights|
   - Alternatives                                         |glance-alternatives|
@@ -105,6 +106,7 @@ The following is the default configuration:
           ['<leader>l'] = actions.enter_win('list'), -- Focus list window
         },
       },
+      hooks = {},
       folds = {
         fold_closed = '',
         fold_open = '',
@@ -118,6 +120,58 @@ The following is the default configuration:
         enable = true, -- Available strating from nvim-0.8+
       },
     })
+<
+
+
+HOOKS                                                           *glance-hooks*
+
+BEFORE_OPEN ~
+
+Runs after getting the results and before opening the window. Can be used to
+alter the default opening behavior or to modify the results like filter out the
+unwanted locations
+
+**Important**: This is a blocking hook which means glance will not open unless
+you call the `open` callback.
+
+Examples:
+
+Don’t open glance when there is only one result but jump directly to that
+location instead
+
+>
+    hooks = {
+      before_open = function(results, open, jump, method)
+        if #results == 1 then
+          jump(results[1]) -- argument is optional
+        else
+          open(results) -- argument is optional
+        end
+      end,
+    }
+<
+
+
+Don’t open glance when there is one result and it is located in the current
+buffer, open otherwise
+
+>
+    hooks = {
+      before_open = function(results, open, jump, method)
+        local uri = vim.uri_from_bufnr(0)
+        if #results == 1 then
+          local target_uri = results[1].uri or results[1].targetUri
+    
+          if target_uri == uri then
+            jump(results[1])
+          else
+            open(results)
+          end
+        else
+          open(results)
+        end
+      end,
+    }
 <
 
 
