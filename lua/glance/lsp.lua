@@ -8,8 +8,7 @@ local function create_handler(method)
       bufnr,
       method.lsp_method,
       params,
-      function(err, m, results)
-        results = method.lsp_method == m and results or m
+      function(err, result, _)
         if err then
           utils.error(
             ('An error happened requesting %s: %s'):format(
@@ -19,16 +18,17 @@ local function create_handler(method)
           )
           return handler({})
         end
-        if results == nil or #results == 0 then
+        if result == nil or vim.tbl_isempty(result) then
           return handler({})
         end
+        result = vim.tbl_islist(result) and result or { result }
         if method.normalize then
-          for _, value in ipairs(results) do
+          for _, value in ipairs(result) do
             value.uri = value.targetUri or value.uri
             value.range = value.targetSelectionRange or value.range
           end
         end
-        handler(results)
+        handler(result)
       end
     )
   end
