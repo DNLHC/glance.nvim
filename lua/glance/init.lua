@@ -18,6 +18,36 @@ function Glance.setup(opts)
   initialized = true
 end
 
+local function create(results, parent_bufnr, parent_winnr, params, method)
+  glance = Glance:create({
+    bufnr = parent_bufnr,
+    winnr = parent_winnr,
+    params = params,
+    results = results,
+    method = method,
+  })
+
+  local augroup = vim.api.nvim_create_augroup('Glance', { clear = true })
+  vim.api.nvim_create_autocmd('CursorMoved', {
+    group = augroup,
+    buffer = glance.list.bufnr,
+    callback = function()
+      glance:update_preview(glance.list:get_current_item())
+    end,
+  })
+
+  vim.api.nvim_create_autocmd('WinClosed', {
+    group = augroup,
+    pattern = {
+      tostring(glance.list.winnr),
+      tostring(glance.preview.winnr),
+    },
+    callback = function()
+      Glance.actions.close()
+    end,
+  })
+end
+
 local function open(opts)
   local parent_bufnr = vim.api.nvim_get_current_buf()
   local parent_winnr = vim.api.nvim_get_current_win()
@@ -28,37 +58,27 @@ local function open(opts)
     params,
     parent_bufnr,
     function(results)
-      if #results == 0 then
+      if vim.tbl_isempty(results) then
         return
       end
 
-      glance = Glance:create({
-        bufnr = parent_bufnr,
-        winnr = parent_winnr,
-        params = params,
-        results = results,
-        method = opts.method,
-      })
+      local _open = function(_results)
+        _results = _results or results
+        create(_results, parent_bufnr, parent_winnr, params, opts.method)
+      end
 
-      local augroup = vim.api.nvim_create_augroup('Glance', { clear = true })
-      vim.api.nvim_create_autocmd('CursorMoved', {
-        group = augroup,
-        buffer = glance.list.bufnr,
-        callback = function()
-          glance:update_preview(glance.list:get_current_item())
-        end,
-      })
+      local _jump = function(result)
+        result = result or results[1]
+        vim.lsp.util.jump_to_location(result, 'utf-8')
+      end
 
-      vim.api.nvim_create_autocmd('WinClosed', {
-        group = augroup,
-        pattern = {
-          tostring(glance.list.winnr),
-          tostring(glance.preview.winnr),
-        },
-        callback = function()
-          Glance.actions.close()
-        end,
-      })
+      local hooks = config.options.hooks
+
+      if type(hooks.before_open) == 'function' then
+        hooks.before_open(results, _open, _jump, opts.method)
+      else
+        _open()
+      end
     end
   )
 end

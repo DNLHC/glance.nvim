@@ -83,6 +83,7 @@ glance.setup({
       ['<leader>l'] = actions.enter_win('list'), -- Focus list window
     },
   },
+  hooks = {},
   folds = {
     fold_closed = '',
     fold_open = '',
@@ -96,6 +97,51 @@ glance.setup({
     enable = true, -- Available strating from nvim-0.8+
   },
 })
+```
+
+## Hooks
+
+### before_open
+
+Runs after getting the results and before opening the window. Can be used to alter the default opening behavior or to modify the results like filter out the unwanted locations
+
+**Important**: This is a blocking hook which means glance will not open unless you call the `open` callback.
+
+Examples:
+
+Don't open glance when there is only one result but jump directly to that location instead
+
+```lua
+hooks = {
+  before_open = function(results, open, jump, method)
+    if #results == 1 then
+      jump(results[1]) -- argument is optional
+    else
+      open(results) -- argument is optional
+    end
+  end,
+}
+```
+
+Don't open glance when there is one result and it is located in the current buffer, open otherwise
+
+```lua
+hooks = {
+  before_open = function(results, open, jump, method)
+    local uri = vim.uri_from_bufnr(0)
+    if #results == 1 then
+      local target_uri = results[1].uri or results[1].targetUri
+
+      if target_uri == uri then
+        jump(results[1])
+      else
+        open(results)
+      end
+    else
+      open(results)
+    end
+  end,
+}
 ```
 
 ## Usage

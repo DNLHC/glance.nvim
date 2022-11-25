@@ -48,6 +48,7 @@ function config.setup(user_config, actions)
         ['<leader>l'] = actions.enter_win('list'),
       },
     },
+    hooks = {},
     folds = {
       fold_closed = '',
       fold_open = '',
