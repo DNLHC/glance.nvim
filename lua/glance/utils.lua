@@ -31,6 +31,9 @@ function utils.list_to_tree(list)
 end
 
 function utils.is_float_win(winnr)
+  if winnr == nil or  not vim.api.nvim_win_is_valid(winnr) then
+      return
+  end
   return vim.api.nvim_win_get_config(winnr).zindex ~= nil
 end
 
