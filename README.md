@@ -45,8 +45,8 @@ glance.setup({
   height = 18, -- Height of the window
   border = {
     enable = false, -- Show window borders. Only horizontal borders allowed
-    top_char = '-',
-    bottom_char = '-',
+    top_char = '―',
+    bottom_char = '―',
   },
   list = {
     position = 'right', -- Position of the list window 'left'|'right'

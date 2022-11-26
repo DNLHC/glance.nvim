@@ -10,8 +10,8 @@ function config.setup(user_config, actions)
     height = 18,
     border = {
       enable = false,
-      top_char = '-',
-      bottom_char = '-',
+      top_char = '―',
+      bottom_char = '―',
     },
     list = {
       position = 'right',
