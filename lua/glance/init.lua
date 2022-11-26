@@ -37,6 +37,16 @@ local function get_border_opts(win)
     or 'none'
 end
 
+local function is_open()
+  if vim.tbl_isempty(glance) then
+    return false
+  end
+
+  local preview_is_valid = glance.preview and glance.preview:is_valid()
+  local list_is_valid = glance.list and glance.list:is_valid()
+  return list_is_valid and preview_is_valid
+end
+
 local function get_win_opts(winnr, line)
   local win_width = vim.fn.winwidth(winnr)
   local list_width = utils.round(
@@ -98,8 +108,11 @@ local function create(results, parent_bufnr, parent_winnr, params, method)
       Glance.actions.close()
     end,
   })
+
   local debounced_on_resize = utils.debounce(function()
-    glance:on_resize()
+    if is_open() then
+      glance:on_resize()
+    end
   end, 50)
 
   vim.api.nvim_create_autocmd('WinScrolled', {
@@ -146,12 +159,6 @@ local function open(opts)
       end
     end
   )
-end
-
-local function is_open()
-  local preview_is_valid = glance.preview and glance.preview:is_valid()
-  local list_is_valid = glance.list and glance.list:is_valid()
-  return list_is_valid and preview_is_valid
 end
 
 Glance.actions = {
