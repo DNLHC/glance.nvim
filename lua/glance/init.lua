@@ -121,7 +121,7 @@ local function open(opts)
     opts.method,
     params,
     parent_bufnr,
-    function(results)
+    function(results, ctx)
       if vim.tbl_isempty(results) then
         return
       end
@@ -133,7 +133,8 @@ local function open(opts)
 
       local _jump = function(result)
         result = result or results[1]
-        vim.lsp.util.jump_to_location(result, 'utf-8')
+        local client = vim.lsp.get_client_by_id(ctx.client_id)
+        vim.lsp.util.jump_to_location(result, client.offset_encoding)
       end
 
       local hooks = config.options.hooks

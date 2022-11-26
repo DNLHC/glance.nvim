@@ -3,12 +3,12 @@ local utils = require('glance.utils')
 local M = {}
 
 local function create_handler(method)
-  return function(bufnr, params, handler)
+  return function(bufnr, params, cb)
     vim.lsp.buf_request(
       bufnr,
       method.lsp_method,
       params,
-      function(err, result, _)
+      function(err, result, ctx)
         if err then
           utils.error(
             ('An error happened requesting %s: %s'):format(
@@ -16,10 +16,10 @@ local function create_handler(method)
               err.message
             )
           )
-          return handler({})
+          return cb({})
         end
         if result == nil or vim.tbl_isempty(result) then
-          return handler({})
+          return cb({})
         end
         result = vim.tbl_islist(result) and result or { result }
         if method.normalize then
@@ -28,7 +28,7 @@ local function create_handler(method)
             value.range = value.targetSelectionRange or value.range
           end
         end
-        handler(result)
+        cb(result, ctx)
       end
     )
   end
