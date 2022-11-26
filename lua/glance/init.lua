@@ -47,7 +47,6 @@ local function get_win_opts(winnr, line)
   local list_pos = config.options.list.position
   local win_opts = {
     relative = 'win',
-    style = 'minimal',
     height = height,
     win = winnr,
     row = line,
@@ -56,6 +55,7 @@ local function get_win_opts(winnr, line)
   local list_win_opts = vim.tbl_extend('keep', {
     width = list_width,
     col = list_pos == 'left' and 0 or preview_width,
+    style = 'minimal',
     border = get_border_opts('list'),
   }, win_opts)
 
@@ -98,12 +98,17 @@ local function create(results, parent_bufnr, parent_winnr, params, method)
       Glance.actions.close()
     end,
   })
+  local debounced_on_resize = utils.debounce(function()
+    glance:on_resize()
+  end, 50)
 
   vim.api.nvim_create_autocmd('WinScrolled', {
     group = augroup,
-    callback = utils.debounce(function()
-      glance:on_resize()
-    end, 50),
+    callback = function(event)
+      if not utils.is_float_win(tonumber(event.match)) then
+        debounced_on_resize()
+      end
+    end,
   })
 end
 

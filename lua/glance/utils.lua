@@ -30,6 +30,10 @@ function utils.list_to_tree(list)
   return tree
 end
 
+function utils.is_float_win(winnr)
+  return vim.api.nvim_win_get_config(winnr).zindex ~= nil
+end
+
 function utils.valid_enum(arg, values, optional)
   return {
     arg,
