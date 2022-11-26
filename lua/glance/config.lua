@@ -81,6 +81,15 @@ function config.setup(user_config, actions)
       false
     ),
   })
+
+  -- Filter disabled mappings
+  for _, mappings in pairs(opts.mappings) do
+    for key, action in pairs(mappings) do
+      if type(key) == 'string' and type(action) == 'boolean' and not action then
+        mappings[key] = nil
+      end
+    end
+  end
 end
 
 return config
