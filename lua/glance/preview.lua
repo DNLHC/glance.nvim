@@ -204,13 +204,14 @@ function Preview:update(item, group)
     end
   end
 
+  vim.api.nvim_win_call(self.winnr, function()
+    vim.cmd('norm! zz zv')
+  end)
+
   vim.api.nvim_win_set_cursor(
     self.winnr,
     { item.start.line + 1, item.start.character }
   )
-  vim.api.nvim_win_call(self.winnr, function()
-    vim.cmd('norm! zz zv')
-  end)
 
   vim.api.nvim_buf_call(item.bufnr, function()
     if vim.api.nvim_buf_get_option(item.bufnr, 'filetype') == '' then
