@@ -298,7 +298,7 @@ function Glance:jump(opts)
 
   local current_item = self.list:get_current_item()
 
-  if not current_item then
+  if not current_item or current_item.is_unreachable then
     return
   end
 

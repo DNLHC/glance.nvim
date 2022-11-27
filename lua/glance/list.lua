@@ -154,6 +154,8 @@ end
 
 local function process_locations(locations, opts)
   return vim.tbl_map(function(location)
+    local is_unreachable = false
+    local preview_line, line
     local uri = location.uri or location.targetUri
     local bufnr = vim.uri_to_bufnr(uri)
     local filename = vim.api.nvim_buf_get_name(bufnr)
@@ -163,7 +165,6 @@ local function process_locations(locations, opts)
 
     local row = start.line
     local col = start.character
-    local line = ''
 
     if vim.lsp.util.get_line then
       line = vim.lsp.util.get_line(uri, row)
@@ -174,12 +175,21 @@ local function process_locations(locations, opts)
       line = (vim.api.nvim_buf_get_lines(bufnr, row, row + 1, false) or { '' })[1]
     end
 
-    local preview_line = get_preview_line({
-      start_line = row,
-      start_col = col,
-      end_col = finish.character,
-      end_line = finish.line,
-    }, 10, line)
+    if not line then
+      line = ('%s:%d:%d'):format(
+        vim.fn.fnamemodify(filename, ':t'),
+        row + 1,
+        col + 1
+      )
+      is_unreachable = true
+    else
+      preview_line = get_preview_line({
+        start_line = row,
+        start_col = col,
+        end_col = finish.character,
+        end_line = finish.line,
+      }, 10, line)
+    end
 
     return {
       bufnr = bufnr,
@@ -195,7 +205,8 @@ local function process_locations(locations, opts)
       ),
       start = start,
       finish = finish,
-      full_text = line,
+      full_text = line or '',
+      is_unreachable = is_unreachable,
     }
   end, locations or {})
 end
@@ -308,12 +319,17 @@ function List:render_locations(locations, renderer)
       indent = ' '
     end
 
-    local preview_line = location.preview_line.value
-
     renderer:append(indent, 'Indent')
-    renderer:append(preview_line.before)
-    renderer:append(preview_line.inside, 'ListMatch')
-    renderer:append(preview_line.after)
+
+    if location.preview_line then
+      local preview_line = location.preview_line.value
+      renderer:append(preview_line.before)
+      renderer:append(preview_line.inside, 'ListMatch')
+      renderer:append(preview_line.after)
+    else
+      renderer:append(location.full_text)
+    end
+
     renderer:nl()
   end
 end

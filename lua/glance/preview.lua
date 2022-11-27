@@ -181,7 +181,7 @@ function Preview:update(item, group)
     return
   end
 
-  if not item or item.is_file then
+  if not item or item.is_file or item.is_unreachable then
     return
   end
 
