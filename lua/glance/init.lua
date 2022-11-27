@@ -47,18 +47,17 @@ local function is_open()
   return list_is_valid and preview_is_valid
 end
 
-local function get_win_opts(winnr, line)
-  local win_width = vim.fn.winwidth(winnr)
+local function get_win_opts(line)
+  local editor_width = vim.api.nvim_eval('&columns')
   local list_width = utils.round(
-    win_width * math.min(0.5, math.max(0.1, config.options.list.width))
+    editor_width * math.min(0.5, math.max(0.1, config.options.list.width))
   )
-  local preview_width = win_width - list_width
+  local preview_width = editor_width - list_width
   local height = config.options.height
   local list_pos = config.options.list.position
   local win_opts = {
-    relative = 'win',
+    relative = 'editor',
     height = height,
-    win = winnr,
     row = line,
   }
 
@@ -238,7 +237,7 @@ Glance.actions = {
 function Glance:create(opts)
   local row = self:scroll_into_view(opts.winnr, opts.params.position)
   local push_tagstack = utils.create_push_tagstack(opts.winnr)
-  local list_win_opts, preview_win_opts = get_win_opts(opts.winnr, row)
+  local list_win_opts, preview_win_opts = get_win_opts(row)
 
   local list = require('glance.list').create({
     results = opts.results,
@@ -270,7 +269,7 @@ end
 
 function Glance:on_resize()
   local list_win_opts, preview_win_opts =
-    get_win_opts(self.parent_winnr, self.row)
+    get_win_opts(self.row)
   vim.api.nvim_win_set_config(self.list.winnr, list_win_opts)
   vim.api.nvim_win_set_config(self.preview.winnr, preview_win_opts)
 end
