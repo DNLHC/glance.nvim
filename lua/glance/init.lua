@@ -152,7 +152,7 @@ local function open(opts)
 
       local hooks = config.options.hooks
 
-      if type(hooks.before_open) == 'function' then
+      if hooks and type(hooks.before_open) == 'function' then
         hooks.before_open(results, _open, _jump, opts.method)
       else
         _open()
