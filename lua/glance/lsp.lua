@@ -4,11 +4,20 @@ local M = {}
 
 local function create_handler(method)
   return function(bufnr, params, cb)
-    vim.lsp.buf_request(
+    local _client_request_ids, cancel_all_requests, client_request_ids
+
+    _client_request_ids, cancel_all_requests = vim.lsp.buf_request(
       bufnr,
       method.lsp_method,
       params,
       function(err, result, ctx)
+        if not client_request_ids then
+          -- do a copy of the table we don't want
+          -- to mutate the original table
+          client_request_ids =
+            vim.tbl_deep_extend('keep', _client_request_ids, {})
+        end
+
         if err then
           utils.error(
             ('An error happened requesting %s: %s'):format(
@@ -16,19 +25,26 @@ local function create_handler(method)
               err.message
             )
           )
-          return cb({})
         end
+
         if result == nil or vim.tbl_isempty(result) then
-          return cb({})
-        end
-        result = vim.tbl_islist(result) and result or { result }
-        if method.normalize then
-          for _, value in ipairs(result) do
-            value.uri = value.targetUri or value.uri
-            value.range = value.targetSelectionRange or value.range
+          client_request_ids[ctx.client_id] = nil
+        else
+          cancel_all_requests()
+          result = vim.tbl_islist(result) and result or { result }
+
+          if method.normalize then
+            for _, value in ipairs(result) do
+              value.uri = value.targetUri or value.uri
+              value.range = value.targetSelectionRange or value.range
+            end
           end
+          return cb(result, ctx)
         end
-        cb(result, ctx)
+
+        if vim.tbl_isempty(client_request_ids) then
+          cb({})
+        end
       end
     )
   end

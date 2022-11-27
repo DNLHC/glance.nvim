@@ -129,36 +129,32 @@ local function open(opts)
   local parent_bufnr = vim.api.nvim_get_current_buf()
   local parent_winnr = vim.api.nvim_get_current_win()
   local params = vim.lsp.util.make_position_params()
+  local lsp = require('glance.lsp')
 
-  require('glance.lsp').request(
-    opts.method,
-    params,
-    parent_bufnr,
-    function(results, ctx)
-      if vim.tbl_isempty(results) then
-        return
-      end
-
-      local _open = function(_results)
-        _results = _results or results
-        create(_results, parent_bufnr, parent_winnr, params, opts.method)
-      end
-
-      local _jump = function(result)
-        result = result or results[1]
-        local client = vim.lsp.get_client_by_id(ctx.client_id)
-        vim.lsp.util.jump_to_location(result, client.offset_encoding)
-      end
-
-      local hooks = config.options.hooks
-
-      if hooks and type(hooks.before_open) == 'function' then
-        hooks.before_open(results, _open, _jump, opts.method)
-      else
-        _open()
-      end
+  lsp.request(opts.method, params, parent_bufnr, function(results, ctx)
+    if vim.tbl_isempty(results) then
+      return utils.info(('No %s found'):format(lsp.methods[opts.method].label))
     end
-  )
+
+    local _open = function(_results)
+      _results = _results or results
+      create(_results, parent_bufnr, parent_winnr, params, opts.method)
+    end
+
+    local _jump = function(result)
+      result = result or results[1]
+      local client = vim.lsp.get_client_by_id(ctx.client_id)
+      vim.lsp.util.jump_to_location(result, client.offset_encoding)
+    end
+
+    local hooks = config.options.hooks
+
+    if hooks and type(hooks.before_open) == 'function' then
+      hooks.before_open(results, _open, _jump, opts.method)
+    else
+      _open()
+    end
+  end)
 end
 
 Glance.actions = {
