@@ -335,6 +335,9 @@ function Glance:update_preview(item)
 end
 
 function Glance:close()
+  if vim.api.nvim_win_is_valid(self.parent_winnr) then
+      vim.api.nvim_set_current_win(self.parent_winnr)
+  end
   vim.api.nvim_del_augroup_by_name('Glance')
   self.list:close()
   self.preview:close()
