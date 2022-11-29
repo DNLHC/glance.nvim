@@ -8,6 +8,7 @@ config.hl_ns = 'Glance'
 function config.setup(user_config, actions)
   local defaults = {
     height = 18,
+    zindex = 45,
     border = {
       enable = false,
       top_char = '―',

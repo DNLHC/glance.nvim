@@ -59,6 +59,7 @@ local function get_win_opts(winnr, line)
     relative = 'win',
     height = height,
     win = winnr,
+    zindex = config.options.zindex,
     row = line,
   }
 

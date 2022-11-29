@@ -43,6 +43,7 @@ local actions = glance.actions
 
 glance.setup({
   height = 18, -- Height of the window
+  zindex = 45,
   border = {
     enable = false, -- Show window borders. Only horizontal borders allowed
     top_char = '―',
