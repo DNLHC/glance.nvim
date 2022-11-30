@@ -336,12 +336,22 @@ function Glance:update_preview(item)
 end
 
 function Glance:close()
+  local hooks = config.options.hooks
+
+  if hooks and type(hooks.before_close) == 'function' then
+    hooks.before_close()
+  end
+
   if vim.api.nvim_win_is_valid(self.parent_winnr) then
-      vim.api.nvim_set_current_win(self.parent_winnr)
+    vim.api.nvim_set_current_win(self.parent_winnr)
   end
   vim.api.nvim_del_augroup_by_name('Glance')
   self.list:close()
   self.preview:close()
+
+  if hooks and type(hooks.after_close) == 'function' then
+    vim.schedule(hooks.after_close)
+  end
 end
 
 function Glance:destroy()

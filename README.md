@@ -151,6 +151,14 @@ hooks = {
 }
 ```
 
+### before_close
+
+Triggered right before the window is closed
+
+### after_close
+
+Triggered after the window is closed
+
 ## Usage
 
 ### Commands
