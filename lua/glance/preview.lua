@@ -23,11 +23,8 @@ end
 local win_opts = {
   winfixwidth = true,
   winfixheight = true,
-  number = vim.wo.number,
-  cursorline = true,
   cursorbind = false,
   scrollbind = false,
-  wrap = true,
   winhighlight = table.concat(winhl, ','),
 }
 
@@ -52,13 +49,13 @@ local function clear_hl(bufnr)
 end
 
 function Preview.create(opts)
+  win_opts =
+    vim.tbl_extend('keep', win_opts, config.options.preview_win_opts or {})
   local preview = Preview:new(opts)
   return preview
 end
 
 function Preview:new(opts)
-  win_opts.number = vim.api.nvim_win_get_option(opts.parent_winnr, 'number')
-
   local winnr = vim.api.nvim_open_win(opts.preview_bufnr, false, opts.win_opts)
 
   local scope = {

@@ -9,6 +9,13 @@ function config.setup(user_config, actions)
   local defaults = {
     height = 18,
     zindex = 45,
+    preview_win_opts = {
+      cursorline = true,
+      cursorbind = false,
+      scrollbind = false,
+      number = true,
+      wrap = true,
+    },
     border = {
       enable = false,
       top_char = '―',
