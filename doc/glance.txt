@@ -182,6 +182,14 @@ buffer, open otherwise
 <
 
 
+BEFORE_CLOSE ~
+
+Triggered right before the window is closed
+
+AFTER_CLOSE ~
+
+Triggered after the window is closed
+
 USAGE                                                           *glance-usage*
 
 COMMANDS ~
