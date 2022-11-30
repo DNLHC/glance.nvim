@@ -11,8 +11,6 @@ function config.setup(user_config, actions)
     zindex = 45,
     preview_win_opts = {
       cursorline = true,
-      cursorbind = false,
-      scrollbind = false,
       number = true,
       wrap = true,
     },
