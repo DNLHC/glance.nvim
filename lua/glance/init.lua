@@ -6,6 +6,7 @@ local Glance = {}
 local glance = {}
 Glance.__index = Glance
 local initialized = false
+local is_fetching = false
 
 function Glance.setup(opts)
   if initialized then
@@ -127,12 +128,19 @@ local function create(results, parent_bufnr, parent_winnr, params, method)
 end
 
 local function open(opts)
+  if is_fetching then
+    return
+  end
+
+  is_fetching = true
+  local lsp = require('glance.lsp')
   local parent_bufnr = vim.api.nvim_get_current_buf()
   local parent_winnr = vim.api.nvim_get_current_win()
   local params = vim.lsp.util.make_position_params()
-  local lsp = require('glance.lsp')
 
   lsp.request(opts.method, params, parent_bufnr, function(results, ctx)
+    is_fetching = false
+
     if vim.tbl_isempty(results) then
       return utils.info(('No %s found'):format(lsp.methods[opts.method].label))
     end
