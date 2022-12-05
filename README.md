@@ -4,6 +4,13 @@ A pretty window for previewing, navigating and editing your LSP locations in one
 
 ![Glance references screenshot](https://i.imgur.com/86K5ljv.png)
 
+## Features
+
+- Supports following LSP methods: `definitions`, `type definitions`, `references`, `implementations`
+- Automatically sets up highlights based on your colorscheme colors
+- Allows editing previewed buffer inside the floating window
+- Intuitive UI
+
 ## Requirements
 
 - Properly configured LSP client
@@ -110,13 +117,13 @@ glance.setup({
 
 ### before_open
 
-Runs after getting the results and before opening the window. Can be used to alter the default opening behavior or to modify the results like filter out the unwanted locations
+Runs after getting the results and before opening the window. Can be used to alter the default opening behavior or to modify the results (for example: filter out the unwanted locations)
 
 **Important**: This is a blocking hook which means glance will not open unless you call the `open` callback.
 
 Examples:
 
-Don't open glance when there is only one result but jump directly to that location instead
+Don't open glance when there is only one result instead jump to that location
 
 ```lua
 hooks = {
@@ -130,7 +137,7 @@ hooks = {
 }
 ```
 
-Don't open glance when there is one result and it is located in the current buffer, open otherwise
+Don't open glance when there is only one result and it is located in the current buffer, open otherwise
 
 ```lua
 hooks = {
