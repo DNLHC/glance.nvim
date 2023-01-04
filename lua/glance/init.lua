@@ -48,13 +48,17 @@ local function is_open()
   return list_is_valid and preview_is_valid
 end
 
+local function get_preview_win_height(winnr)
+  return math.min(vim.fn.winheight(winnr), config.options.height)
+end
+
 local function get_win_opts(winnr, line)
   local win_width = vim.fn.winwidth(winnr)
   local list_width = utils.round(
     win_width * math.min(0.5, math.max(0.1, config.options.list.width))
   )
   local preview_width = win_width - list_width
-  local height = config.options.height
+  local height = get_preview_win_height(winnr)
   local list_pos = config.options.list.position
   local win_opts = {
     relative = 'win',
@@ -288,7 +292,13 @@ function Glance:scroll_into_view(winnr, position)
   local row = vim.fn.winline()
   local bottom_offset = 2
   local border_height = config.options.border.enable and 2 or 0
-  local preview_height = config.options.height + border_height + bottom_offset
+  local preview_height = get_preview_win_height(winnr)
+    + border_height
+    + bottom_offset
+
+  if preview_height >= win_height then
+    return 0
+  end
 
   -- Scroll the window down until we have enough rows to render the preview window.
   -- Needs to be done row by row because the <C-e> command scrolls over lines and not rows
