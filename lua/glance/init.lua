@@ -213,7 +213,7 @@ Glance.actions = {
     return function()
       local cmd = distance > 0 and [[\<C-y>]] or [[\<C-e>]]
       vim.api.nvim_win_call(glance.preview.winnr, function()
-        vim.cmd(('exec "norm! %d%s"'):format(distance, cmd))
+        vim.cmd(('exec "norm! %d%s"'):format(math.abs(distance), cmd))
       end)
     end
   end,
