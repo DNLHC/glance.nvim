@@ -327,6 +327,8 @@ function Glance:jump(opts)
 
   self:close()
 
+  glance.push_tagstack()
+
   if opts.cmd then
     vim.cmd(opts.cmd)
   end
