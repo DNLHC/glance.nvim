@@ -138,11 +138,15 @@ local function open(opts)
 
   is_fetching = true
   local lsp = require('glance.lsp')
+  local request_bufnr = vim.api.nvim_get_current_buf()
+  local params = vim.lsp.util.make_position_params()
+  if is_open() then
+    Glance.actions.close()
+  end
   local parent_bufnr = vim.api.nvim_get_current_buf()
   local parent_winnr = vim.api.nvim_get_current_win()
-  local params = vim.lsp.util.make_position_params()
 
-  lsp.request(opts.method, params, parent_bufnr, function(results, ctx)
+  lsp.request(opts.method, params, request_bufnr, function(results, ctx)
     is_fetching = false
 
     if vim.tbl_isempty(results) then
@@ -237,9 +241,6 @@ Glance.actions = {
         false
       ),
     })
-    if is_open() then
-      Glance.actions.close()
-    end
     open({ method = method })
   end,
 }
@@ -278,8 +279,10 @@ function Glance:create(opts)
 end
 
 function Glance:on_resize()
-  local list_win_opts, preview_win_opts =
-    get_win_opts(self.parent_winnr, self.row)
+  local list_win_opts, preview_win_opts = get_win_opts(
+    self.parent_winnr,
+    self.row
+  )
   vim.api.nvim_win_set_config(self.list.winnr, list_win_opts)
   vim.api.nvim_win_set_config(self.preview.winnr, preview_win_opts)
 end
