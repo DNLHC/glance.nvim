@@ -216,7 +216,6 @@ local function get_lsp_method_label(method_name)
 end
 
 function List:setup(opts)
-  vim.api.nvim_buf_set_name(self.bufnr, 'Glance')
   utils.win_set_options(self.winnr, win_opts)
   utils.buf_set_options(self.bufnr, buf_opts)
 
