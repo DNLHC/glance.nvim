@@ -46,6 +46,7 @@ function config.setup(user_config, actions)
         ['q'] = actions.close,
         ['Q'] = actions.close,
         ['<Esc>'] = actions.close,
+        ["<C-q>"] = actions.quickfix,
       },
       preview = {
         ['Q'] = actions.close,

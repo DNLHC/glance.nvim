@@ -242,6 +242,33 @@ Glance.actions = {
     end
     open({ method = method })
   end,
+  quickfix = function()
+    local qf_items = {}
+    for _, group in pairs(glance.list.groups) do
+      for _, item in ipairs(group.items) do
+        local end_lnum = vim.tbl_get(item, 'finish', 'line')
+        if end_lnum then
+          end_lnum = end_lnum + 1
+        end
+        local end_col = vim.tbl_get(item, 'finish', 'character')
+        if end_col then
+          end_col = end_col + 1
+        end
+        table.insert(qf_items, {
+          bufnr = item.bufnr,
+          filename = item.filename,
+          lnum = item.lnum,
+          end_lnum = end_lnum,
+          col = item.col,
+          end_col = end_col,
+          text = item.full_text,
+        })
+      end
+    end
+    vim.fn.setqflist(qf_items, 'r')
+    Glance.actions.close()
+    vim.cmd.copen()
+  end,
 }
 
 function Glance:create(opts)
