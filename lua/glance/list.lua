@@ -351,17 +351,36 @@ function List:get_current_item()
   return item
 end
 
+---@param opts { start: integer, step_increment: integer, cycle?: boolean }
+function List:walk(opts)
+  local idx = opts.start
+  return function()
+    idx = idx + opts.step_increment
+    if opts.cycle then
+      idx = ((idx - 1) % vim.api.nvim_buf_line_count(self.bufnr)) + 1
+    end
+    if not self.items[idx] then
+      return nil
+    end
+    return idx, self.items[idx]
+  end
+end
+
 function List:next(opts)
   opts = opts or {}
-  for i = self:get_line() + 1 + (opts.skip or 0), vim.api.nvim_buf_line_count(self.bufnr), 1 do
-    local item = self.items[i]
-    if item and opts.loc_only and item.is_file then
+  for i, item in
+    self:walk({
+      start = self:get_line() + (opts.skip or 0),
+      step_increment = 1,
+      cycle = opts.cycle,
+    })
+  do
+    if opts.loc_only and item.is_file then
       if folds.is_folded(item.filename) then
         self:toggle_fold(item)
       end
-      return self:next({ skip = 1 })
     end
-    if item and not (opts.loc_only and item.is_file) then
+    if not (opts.loc_only and item.is_file) then
       vim.api.nvim_win_set_cursor(self.winnr, { i, self:get_col() })
       return item
     end
@@ -371,16 +390,19 @@ end
 
 function List:previous(opts)
   opts = opts or {}
-  for i = self:get_line() - 1 + (opts.skip or 0), 0, -1 do
-    local item = self.items[i]
-    if item and opts.loc_only and item.is_file then
+  for i, item in
+    self:walk({
+      start = self:get_line() + (opts.skip or 0),
+      step_increment = -1,
+      cycle = opts.cycle,
+    })
+  do
+    if opts.loc_only and item.is_file then
       if folds.is_folded(item.filename) then
         self:toggle_fold(item)
-        return self:previous({ skip = item.count - 1 })
       end
-      return self:previous({ skip = -1, loc_only = true })
     end
-    if item and not (opts.loc_only and item.is_file) then
+    if not (opts.loc_only and item.is_file) then
       vim.api.nvim_win_set_cursor(self.winnr, { i, self:get_col() })
       return item
     end

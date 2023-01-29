@@ -202,11 +202,11 @@ Glance.actions = {
     glance:update_preview(item)
   end,
   next_location = function()
-    local item = glance.list:next({ loc_only = true })
+    local item = glance.list:next({ loc_only = true, cycle = true })
     glance:update_preview(item)
   end,
   previous_location = function()
-    local item = glance.list:previous({ loc_only = true })
+    local item = glance.list:previous({ loc_only = true, cycle = true })
     glance:update_preview(item)
   end,
   preview_scroll_win = function(distance)
