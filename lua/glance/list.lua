@@ -351,34 +351,38 @@ function List:get_current_item()
   return item
 end
 
----@param opts { start: integer, step_increment: integer, cycle?: boolean }
+---@param opts { start: integer, backwards?: boolean, cycle?: boolean }
 function List:walk(opts)
   local idx = opts.start
   return function()
-    idx = idx + opts.step_increment
+    idx = idx + (opts.backwards and -1 or 1)
     if opts.cycle then
       idx = ((idx - 1) % vim.api.nvim_buf_line_count(self.bufnr)) + 1
     end
-    if not self.items[idx] then
+    local item = self.items[idx]
+    if not item then
       return nil
     end
-    return idx, self.items[idx]
+    return idx, item
   end
 end
 
 function List:next(opts)
   opts = opts or {}
-  for i, item in
+  for i in
     self:walk({
-      start = self:get_line(),
-      step_increment = 1,
+      start = self:get_line() + (opts.offset or 0),
       cycle = opts.cycle,
     })
   do
-    if opts.loc_only and item.is_file then
-      if folds.is_folded(item.filename) then
-        self:toggle_fold(item)
-      end
+    local item = self.items[i]
+    if opts.loc_only and item.is_file and folds.is_folded(item.filename) then
+      self:toggle_fold(item)
+      return self:next({
+        offset = i - self:get_line(), -- offset by how far we've already iterated prior to unfolding
+        cycle = opts.cycle,
+        loc_only = true,
+      })
     end
     if not (opts.loc_only and item.is_file) then
       vim.api.nvim_win_set_cursor(self.winnr, { i, self:get_col() })
@@ -392,15 +396,18 @@ function List:previous(opts)
   opts = opts or {}
   for i, item in
     self:walk({
-      start = self:get_line(),
-      step_increment = -1,
+      start = self:get_line() + (opts.offset or 0),
       cycle = opts.cycle,
+      backwards = true,
     })
   do
-    if opts.loc_only and item.is_file then
-      if folds.is_folded(item.filename) then
-        self:toggle_fold(item)
-      end
+    if opts.loc_only and item.is_file and folds.is_folded(item.filename) then
+      self:toggle_fold(item)
+      return self:previous({
+        offset = item.count, -- offset by how many new items were added after unfolding
+        cycle = opts.cycle,
+        loc_only = true,
+      })
     end
     if not (opts.loc_only and item.is_file) then
       vim.api.nvim_win_set_cursor(self.winnr, { i, self:get_col() })
