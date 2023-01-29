@@ -369,13 +369,12 @@ end
 
 function List:next(opts)
   opts = opts or {}
-  for i in
+  for i, item in
     self:walk({
       start = self:get_line() + (opts.offset or 0),
       cycle = opts.cycle,
     })
   do
-    local item = self.items[i]
     if opts.loc_only and item.is_file and folds.is_folded(item.filename) then
       self:toggle_fold(item)
       return self:next({
