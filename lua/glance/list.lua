@@ -371,7 +371,7 @@ function List:next(opts)
   opts = opts or {}
   for i, item in
     self:walk({
-      start = self:get_line() + (opts.skip or 0),
+      start = self:get_line(),
       step_increment = 1,
       cycle = opts.cycle,
     })
@@ -393,7 +393,7 @@ function List:previous(opts)
   opts = opts or {}
   for i, item in
     self:walk({
-      start = self:get_line() + (opts.skip or 0),
+      start = self:get_line(),
       step_increment = -1,
       cycle = opts.cycle,
     })
