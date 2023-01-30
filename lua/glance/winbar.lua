@@ -24,14 +24,15 @@ function Winbar:render(section_values)
     return
   end
 
-  local wb = ''
+  local winbar_value = ''
   for section, value in pairs(section_values) do
-    wb = string.format('%s%%#%s# %s', wb, self.sections[section], value)
+    winbar_value =
+      string.format('%s%%#%s# %s', winbar_value, self.sections[section], value)
   end
 
   self.last_values = section_values
   vim.schedule(function()
-    vim.api.nvim_win_set_option(self.winnr, 'winbar', wb)
+    vim.api.nvim_win_set_option(self.winnr, 'winbar', winbar_value)
   end)
 end
 

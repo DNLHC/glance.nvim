@@ -51,6 +51,7 @@ function utils.valid_enum(arg, values, optional)
     ),
   }
 end
+
 function utils.get_word_until_position(pos, text)
   pos = math.max(0, pos)
   local str = string.sub(text, 0, pos)

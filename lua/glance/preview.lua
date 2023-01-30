@@ -5,7 +5,7 @@ local Winbar = require('glance.winbar')
 local Preview = {}
 Preview.__index = Preview
 
-local touched_bufs = {}
+local touched_buffers = {}
 
 local winhl = {
   'Normal:GlancePreviewNormal',
@@ -137,14 +137,15 @@ function Preview:close()
     vim.api.nvim_win_close(self.winnr, {})
   end
 
-  for _, bufnr in ipairs(touched_bufs) do
+  for _, bufnr in ipairs(touched_buffers) do
     if vim.api.nvim_buf_is_valid(bufnr) and vim.fn.buflisted(bufnr) ~= 1 then
       vim.api.nvim_buf_delete(bufnr, { force = true })
     else
       clear_hl(bufnr)
     end
   end
-  touched_bufs = {}
+
+  touched_buffers = {}
 end
 
 function Preview:hl_buf(item)
@@ -178,7 +179,7 @@ function Preview:update(item, group)
     return
   end
 
-  if not item or item.is_file or item.is_unreachable then
+  if not item or item.is_group or item.is_unreachable then
     return
   end
 
@@ -220,11 +221,11 @@ function Preview:update(item, group)
   self.current_location = item
   self:on_attach_buffer()
 
-  if not vim.tbl_contains(touched_bufs, item.bufnr) then
+  if not vim.tbl_contains(touched_buffers, item.bufnr) then
     for _, location in pairs(group.items) do
       self:hl_buf(location)
     end
-    table.insert(touched_bufs, item.bufnr)
+    table.insert(touched_buffers, item.bufnr)
   end
 end
 

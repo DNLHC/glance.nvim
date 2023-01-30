@@ -212,11 +212,11 @@ Glance.actions = {
     glance:update_preview(item)
   end,
   next_location = function()
-    local item = glance.list:next({ loc_only = true, cycle = true })
+    local item = glance.list:next({ skip_groups = true, cycle = true })
     glance:update_preview(item)
   end,
   previous_location = function()
-    local item = glance.list:previous({ loc_only = true, cycle = true })
+    local item = glance.list:previous({ skip_groups = true, cycle = true })
     glance:update_preview(item)
   end,
   preview_scroll_win = function(distance)
@@ -328,7 +328,7 @@ function Glance:jump(opts)
     return
   end
 
-  if current_item.is_file then
+  if current_item.is_group then
     return self.list:toggle_fold(current_item)
   end
 
@@ -356,7 +356,7 @@ function Glance:jump(opts)
 end
 
 function Glance:update_preview(item)
-  if item and not item.is_file then
+  if item and not item.is_group then
     local group = self.list:get_active_group({ location = item })
     self.preview:update(item, group)
   end
@@ -372,6 +372,7 @@ function Glance:close()
   if vim.api.nvim_win_is_valid(self.parent_winnr) then
     vim.api.nvim_set_current_win(self.parent_winnr)
   end
+
   vim.api.nvim_del_augroup_by_name('Glance')
   self.list:close()
   self.preview:close()

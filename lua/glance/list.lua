@@ -74,7 +74,7 @@ function List:is_valid()
   return self.winnr and vim.api.nvim_win_is_valid(self.winnr)
 end
 
-local function find_location_pos(items, location)
+local function find_location_position(items, location)
   return utils.tbl_find(items, function(item)
     return vim.deep_equal(item, location)
   end)
@@ -87,21 +87,21 @@ local function find_starting_location(locations)
 end
 
 local function find_starting_group_and_location(groups, position_params)
-  local same_file = {}
+  local fallback = nil
   for _, group in pairs(groups) do
-    local has_starting_location = find_starting_location(group.items)
+    local starting_location = find_starting_location(group.items)
 
-    if has_starting_location then
-      return group, has_starting_location
+    if starting_location then
+      return group, starting_location
     end
 
-    if position_params.textDocument.uri == group.uri then
-      table.insert(same_file, { group = group, location = group.items[1] })
+    if not fallback and position_params.textDocument.uri == group.uri then
+      fallback = { group = group, location = group.items[1] }
     end
   end
 
-  if not vim.tbl_isempty(same_file) then
-    return same_file[1].group, same_file[1].locaction
+  if fallback then
+    return fallback.group, fallback.location
   end
 
   -- if nothing was found return the first group and location
@@ -155,7 +155,7 @@ local function get_preview_line(range, offset, text)
   }
 end
 
-local function process_locations(locations, opts)
+local function process_locations(locations, position_params)
   return vim.tbl_map(function(location)
     local is_unreachable = false
     local preview_line, line
@@ -202,7 +202,7 @@ local function process_locations(locations, opts)
       lnum = row + 1,
       col = col + 1,
       is_starting = is_starting_location(
-        opts,
+        position_params,
         uri,
         { start = start, finish = finish }
       ),
@@ -229,7 +229,7 @@ function List:setup(opts)
     find_starting_group_and_location(self.groups, opts.position_params)
   folds.open(group.filename)
   self:update(self.groups)
-  local _, location_line = find_location_pos(self.items, location)
+  local _, location_line = find_location_position(self.items, location)
 
   if config.options.winbar.enable then
     local winbar = Winbar:new(self.winnr)
@@ -281,9 +281,10 @@ function List:render(groups)
       self.items[renderer.line_nr + 1] = {
         filename = filename,
         uri = group.uri,
-        is_file = true,
+        is_group = true,
         count = #group.items,
       }
+
       local is_folded = folds.is_folded(filename)
       local fold_icon = is_folded and icons.fold_closed or icons.fold_open
 
@@ -379,15 +380,19 @@ function List:next(opts)
       cycle = opts.cycle,
     })
   do
-    if opts.loc_only and item.is_file and folds.is_folded(item.filename) then
+    if
+      opts.skip_groups
+      and item.is_group
+      and folds.is_folded(item.filename)
+    then
       self:toggle_fold(item)
       return self:next({
         offset = i - self:get_line(), -- offset by how far we've already iterated prior to unfolding
         cycle = opts.cycle,
-        loc_only = true,
+        skip_groups = true,
       })
     end
-    if not (opts.loc_only and item.is_file) then
+    if not (opts.skip_groups and item.is_group) then
       vim.api.nvim_win_set_cursor(self.winnr, { i, self:get_col() })
       return item
     end
@@ -404,16 +409,20 @@ function List:previous(opts)
       backwards = true,
     })
   do
-    if opts.loc_only and item.is_file and folds.is_folded(item.filename) then
+    if
+      opts.skip_groups
+      and item.is_group
+      and folds.is_folded(item.filename)
+    then
       local is_last_line = i == vim.api.nvim_buf_line_count(self.bufnr)
       self:toggle_fold(item)
       return self:previous({
         offset = is_last_line and 0 or item.count, -- offset by how many new items were added after unfolding
         cycle = opts.cycle,
-        loc_only = true,
+        skip_groups = true,
       })
     end
-    if not (opts.loc_only and item.is_file) then
+    if not (opts.skip_groups and item.is_group) then
       vim.api.nvim_win_set_cursor(self.winnr, { i, self:get_col() })
       return item
     end
