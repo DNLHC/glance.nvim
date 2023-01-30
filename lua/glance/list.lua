@@ -356,12 +356,13 @@ end
 function List:walk(opts)
   local idx = opts.start
   return function()
+    local line_count = vim.api.nvim_buf_line_count(self.bufnr)
     idx = idx + (opts.backwards and -1 or 1)
     if opts.cycle then
-      idx = ((idx - 1) % vim.api.nvim_buf_line_count(self.bufnr)) + 1
+      idx = ((idx - 1) % line_count) + 1
     end
     local item = self.items[idx]
-    if not item then
+    if not item or idx > line_count then
       return nil
     end
     return idx, item
