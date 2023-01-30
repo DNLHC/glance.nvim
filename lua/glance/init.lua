@@ -149,23 +149,33 @@ local function open(opts)
       return utils.info(('No %s found'):format(lsp.methods[opts.method].label))
     end
 
-    local _open = function(_results)
-      _results = _results or results
-      create(_results, parent_bufnr, parent_winnr, params, opts.method)
-    end
-
-    local _jump = function(result)
-      result = result or results[1]
-      local client = vim.lsp.get_client_by_id(ctx.client_id)
-      vim.lsp.util.jump_to_location(result, client.offset_encoding)
-    end
-
-    local hooks = config.options.hooks
-
-    if hooks and type(hooks.before_open) == 'function' then
-      hooks.before_open(results, _open, _jump, opts.method)
+    if is_open() then
+      glance.list:setup({
+        results = results,
+        position_params = params,
+        method = opts.method,
+      })
+      glance:update_preview(glance.list:get_current_item())
+      vim.api.nvim_set_current_win(glance.list.winnr)
     else
-      _open()
+      local _open = function(_results)
+        _results = _results or results
+        create(_results, parent_bufnr, parent_winnr, params, opts.method)
+      end
+
+      local _jump = function(result)
+        result = result or results[1]
+        local client = vim.lsp.get_client_by_id(ctx.client_id)
+        vim.lsp.util.jump_to_location(result, client.offset_encoding)
+      end
+
+      local hooks = config.options.hooks
+
+      if hooks and type(hooks.before_open) == 'function' then
+        hooks.before_open(results, _open, _jump, opts.method)
+      else
+        _open()
+      end
     end
   end)
 end
@@ -237,9 +247,6 @@ Glance.actions = {
         false
       ),
     })
-    if is_open() then
-      Glance.actions.close()
-    end
     open({ method = method })
   end,
 }
@@ -252,11 +259,11 @@ function Glance:create(opts)
   local list = require('glance.list').create({
     results = opts.results,
     parent_winnr = opts.winnr,
-    uri = opts.params.textDocument.uri,
-    pos = opts.params.position,
+    position_params = opts.params,
     method = opts.method,
     win_opts = list_win_opts,
   })
+
   local preview = require('glance.preview').create({
     parent_winnr = opts.winnr,
     parent_bufnr = opts.bufnr,

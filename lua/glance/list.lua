@@ -37,18 +37,17 @@ function List.create(opts)
   local bufnr = vim.api.nvim_create_buf(false, true)
   local winnr = vim.api.nvim_open_win(bufnr, true, opts.win_opts)
 
-  local list = List:new(bufnr, winnr, opts.results)
+  local list = List:new(bufnr, winnr)
   list:setup(opts)
 
   return list
 end
 
-function List:new(bufnr, winnr, locations)
+function List:new(bufnr, winnr)
   local scope = {
     bufnr = bufnr,
     winnr = winnr,
     items = {},
-    count = #locations,
     groups = {},
   }
 
@@ -87,22 +86,22 @@ local function find_starting_location(locations)
   end)
 end
 
-local function find_starting_group_and_location(groups, opts)
+local function find_starting_group_and_location(groups, position_params)
   local same_file = {}
   for _, group in pairs(groups) do
-    local has_starting_loc = find_starting_location(group.items)
+    local has_starting_location = find_starting_location(group.items)
 
-    if has_starting_loc then
-      return group, has_starting_loc
+    if has_starting_location then
+      return group, has_starting_location
     end
 
-    if opts.uri == group.uri then
-      table.insert(same_file, { group = group, loc = group.items[1] })
+    if position_params.textDocument.uri == group.uri then
+      table.insert(same_file, { group = group, location = group.items[1] })
     end
   end
 
   if not vim.tbl_isempty(same_file) then
-    return same_file[1].group, same_file[1].loc
+    return same_file[1].group, same_file[1].locaction
   end
 
   -- if nothing was found return the first group and location
@@ -110,21 +109,25 @@ local function find_starting_group_and_location(groups, opts)
   return group, group.items[1]
 end
 
-local function is_starting_location(opts, loc_uri, loc_range)
-  if loc_uri ~= opts.uri then
+local function is_starting_location(
+  position_params,
+  location_uri,
+  location_range
+)
+  if location_uri ~= position_params.textDocument.uri then
     return false
   end
 
   local range = Range:new(
-    loc_range.start.line,
-    loc_range.start.character,
-    loc_range.finish.line,
-    loc_range.finish.character
+    location_range.start.line,
+    location_range.start.character,
+    location_range.finish.line,
+    location_range.finish.character
   )
 
   return range:contains_position({
-    line = opts.pos.line,
-    col = opts.pos.character,
+    line = position_params.position.line,
+    col = position_params.position.character,
   })
 end
 
@@ -219,11 +222,13 @@ function List:setup(opts)
   utils.win_set_options(self.winnr, win_opts)
   utils.buf_set_options(self.bufnr, buf_opts)
 
-  local processed_locations = process_locations(opts.results, opts)
+  local processed_locations =
+    process_locations(opts.results, opts.position_params)
   self.groups = utils.list_to_tree(processed_locations)
-  local group, location = find_starting_group_and_location(self.groups, opts)
+  local group, location =
+    find_starting_group_and_location(self.groups, opts.position_params)
   folds.open(group.filename)
-  self:render(self.groups)
+  self:update(self.groups)
   local _, location_line = find_location_pos(self.items, location)
 
   if config.options.winbar.enable then
@@ -233,13 +238,12 @@ function List:setup(opts)
       title = string.format(
         '%s (%d)',
         get_lsp_method_label(opts.method),
-        self.count
+        #opts.results
       ),
     })
   end
 
   vim.api.nvim_win_set_cursor(self.winnr, { location_line, 1 })
-  utils.buf_set_options(self.bufnr, { modifiable = false, readonly = true })
   self:set_keymaps()
 end
 
@@ -265,7 +269,6 @@ function List:destroy()
   self.winnr = nil
   self.bufnr = nil
   self.items = nil
-  self.count = nil
   self.groups = nil
 end
 
