@@ -402,9 +402,10 @@ function List:previous(opts)
     })
   do
     if opts.loc_only and item.is_file and folds.is_folded(item.filename) then
+      local is_last_line = i == vim.api.nvim_buf_line_count(self.bufnr)
       self:toggle_fold(item)
       return self:previous({
-        offset = item.count, -- offset by how many new items were added after unfolding
+        offset = is_last_line and 0 or item.count, -- offset by how many new items were added after unfolding
         cycle = opts.cycle,
         loc_only = true,
       })
