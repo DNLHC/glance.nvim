@@ -38,7 +38,10 @@ function List.create(opts)
   local winnr = vim.api.nvim_open_win(bufnr, true, opts.win_opts)
 
   local list = List:new(bufnr, winnr)
+  utils.win_set_options(winnr, win_opts)
+  utils.buf_set_options(bufnr, buf_opts)
   list:setup(opts)
+  list:set_keymaps()
 
   return list
 end
@@ -219,9 +222,6 @@ local function get_lsp_method_label(method_name)
 end
 
 function List:setup(opts)
-  utils.win_set_options(self.winnr, win_opts)
-  utils.buf_set_options(self.bufnr, buf_opts)
-
   local processed_locations =
     process_locations(opts.results, opts.position_params)
   self.groups = utils.list_to_tree(processed_locations)
@@ -244,7 +244,6 @@ function List:setup(opts)
   end
 
   vim.api.nvim_win_set_cursor(self.winnr, { location_line, 1 })
-  self:set_keymaps()
 end
 
 function List:update(groups)
