@@ -158,7 +158,7 @@ local function get_preview_line(range, offset, text)
   }
 end
 
-local function process_locations(locations, position_params)
+local function process_locations(locations, position_params, offset_encoding)
   return vim.tbl_map(function(location)
     local is_unreachable = false
     local preview_line, line
@@ -168,33 +168,34 @@ local function process_locations(locations, position_params)
     local range = location.range or location.targetSelectionRange
     local start = range['start']
     local finish = range['end']
+    local start_col = start.character
+    local end_col = finish.character
 
     local row = start.line
-    local col = start.character
 
-    if vim.lsp.util.get_line then
-      line = vim.lsp.util.get_line(uri, row)
-    else
-      if not vim.api.nvim_buf_is_loaded(bufnr) then
-        vim.fn.bufload(bufnr)
-      end
-      line = (vim.api.nvim_buf_get_lines(bufnr, row, row + 1, false) or { '' })[1]
+    if not vim.api.nvim_buf_is_loaded(bufnr) then
+      vim.fn.bufload(bufnr)
     end
+    line = (vim.api.nvim_buf_get_lines(bufnr, row, row + 1, false) or { '' })[1]
 
     if not line then
       line = ('%s:%d:%d'):format(
         vim.fn.fnamemodify(filename, ':t'),
-        row + 1,
-        col + 1
+        start_col + 1,
+        end_col + 1
       )
       is_unreachable = true
     else
+      start_col =
+        utils.get_line_byte_from_position(line, start, offset_encoding)
+      end_col = utils.get_line_byte_from_position(line, finish, offset_encoding)
+
       preview_line = get_preview_line({
         start_line = row,
-        start_col = col,
-        end_col = finish.character,
+        start_col = start_col,
+        end_col = end_col,
         end_line = finish.line,
-      }, 10, line)
+      }, 8, line)
     end
 
     return {
@@ -202,15 +203,15 @@ local function process_locations(locations, position_params)
       filename = filename,
       uri = uri,
       preview_line = preview_line,
-      lnum = row + 1,
-      col = col + 1,
+      start_col = start_col,
+      end_col = end_col,
+      start_line = start.line,
+      end_line = finish.line,
       is_starting = is_starting_location(
         position_params,
         uri,
         { start = start, finish = finish }
       ),
-      start = start,
-      finish = finish,
       full_text = line or '',
       is_unreachable = is_unreachable,
     }
@@ -223,7 +224,7 @@ end
 
 function List:setup(opts)
   local processed_locations =
-    process_locations(opts.results, opts.position_params)
+    process_locations(opts.results, opts.position_params, opts.offset_encoding)
   self.groups = utils.list_to_tree(processed_locations)
   local group, location =
     find_starting_group_and_location(self.groups, opts.position_params)

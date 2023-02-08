@@ -84,13 +84,21 @@ local function get_win_opts(winnr, line)
   return list_win_opts, preview_win_opts
 end
 
-local function create(results, parent_bufnr, parent_winnr, params, method)
+local function create(
+  results,
+  parent_bufnr,
+  parent_winnr,
+  params,
+  method,
+  offset_encoding
+)
   glance = Glance:create({
     bufnr = parent_bufnr,
     winnr = parent_winnr,
     params = params,
     results = results,
     method = method,
+    offset_encoding = offset_encoding,
   })
 
   local augroup = vim.api.nvim_create_augroup('Glance', { clear = true })
@@ -149,6 +157,8 @@ local function open(opts)
       return utils.info(('No %s found'):format(lsp.methods[opts.method].label))
     end
 
+    local client = vim.lsp.get_client_by_id(ctx.client_id)
+
     if is_open() then
       glance.list:setup({
         results = results,
@@ -160,12 +170,18 @@ local function open(opts)
     else
       local _open = function(_results)
         _results = _results or results
-        create(_results, parent_bufnr, parent_winnr, params, opts.method)
+        create(
+          _results,
+          parent_bufnr,
+          parent_winnr,
+          params,
+          opts.method,
+          client.offset_encoding
+        )
       end
 
       local _jump = function(result)
         result = result or results[1]
-        local client = vim.lsp.get_client_by_id(ctx.client_id)
         vim.lsp.util.jump_to_location(result, client.offset_encoding)
       end
 
@@ -262,6 +278,7 @@ function Glance:create(opts)
     position_params = opts.params,
     method = opts.method,
     win_opts = list_win_opts,
+    offset_encoding = opts.offset_encoding,
   })
 
   local preview = require('glance.preview').create({
@@ -348,7 +365,7 @@ function Glance:jump(opts)
 
   vim.api.nvim_win_set_cursor(
     0,
-    { current_item.start.line + 1, current_item.start.character }
+    { current_item.start_line + 1, current_item.start_col }
   )
   vim.cmd('norm! zz')
 

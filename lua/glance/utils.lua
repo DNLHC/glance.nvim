@@ -129,6 +129,24 @@ function utils.buf_set_options(bufnr, opts)
   end
 end
 
+function utils.get_line_byte_from_position(line, position, offset_encoding)
+  -- LSP's line and characters are 0-indexed
+  -- Vim's line and columns are 1-indexed
+  local col = position.character
+  -- When on the first character, we can ignore the difference between byte and
+  -- character
+  if col > 0 then
+    local ok, result
+    ok, result =
+      pcall(vim.lsp.util._str_byteindex_enc, line, col, offset_encoding)
+    if ok then
+      return result
+    end
+    return math.min(#line, col)
+  end
+  return col
+end
+
 function utils.round(n)
   return n >= 0 and math.floor(n + 0.5) or math.ceil(n - 0.5)
 end

@@ -148,28 +148,28 @@ function Preview:close()
   touched_buffers = {}
 end
 
-function Preview:hl_buf(item)
-  for row = item.start.line, item.finish.line, 1 do
-    local col_start = 0
-    local col_end = -1
+function Preview:hl_buf(location)
+  for row = location.start_line, location.end_line, 1 do
+    local start_col = 0
+    local end_col = -1
 
-    if row == item.start.line then
-      col_start = item.start.character
+    if row == location.start_line then
+      start_col = location.start_col
     end
 
-    if row == item.finish.line then
-      col_end = item.finish.character
+    if row == location.end_line then
+      end_col = location.end_col
     end
 
     local match_hl = vim.fn.has('nvim-0.8') == 1 and 'None' or 'PreviewMatch'
 
     vim.api.nvim_buf_add_highlight(
-      item.bufnr,
+      location.bufnr,
       config.namespace,
       config.hl_ns .. match_hl,
       row,
-      col_start,
-      col_end
+      start_col,
+      end_col
     )
   end
 end
@@ -204,7 +204,7 @@ function Preview:update(item, group)
 
   vim.api.nvim_win_set_cursor(
     self.winnr,
-    { item.start.line + 1, item.start.character }
+    { item.start_line + 1, item.start_col }
   )
 
   vim.api.nvim_win_call(self.winnr, function()
