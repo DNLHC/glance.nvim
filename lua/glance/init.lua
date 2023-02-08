@@ -164,7 +164,9 @@ local function open(opts)
         results = results,
         position_params = params,
         method = opts.method,
+        offset_encoding = client.offset_encoding,
       })
+      glance.preview:clear_hl()
       glance:update_preview(glance.list:get_current_item())
       vim.api.nvim_set_current_win(glance.list.winnr)
     else

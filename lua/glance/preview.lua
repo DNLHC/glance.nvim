@@ -148,6 +148,13 @@ function Preview:close()
   touched_buffers = {}
 end
 
+function Preview:clear_hl()
+  for _, bufnr in ipairs(touched_buffers) do
+    clear_hl(bufnr)
+  end
+  touched_buffers = {}
+end
+
 function Preview:hl_buf(location)
   for row = location.start_line, location.end_line, 1 do
     local start_col = 0
