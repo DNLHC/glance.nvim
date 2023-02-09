@@ -82,10 +82,39 @@ function Preview:is_valid()
   return self.winnr and vim.api.nvim_win_is_valid(self.winnr)
 end
 
-function Preview:on_attach_buffer()
-  local bufnr = (self.current_location or {}).bufnr
+function Preview:on_attach_buffer(bufnr)
+  if bufnr ~= nil and vim.api.nvim_buf_is_valid(bufnr) then
+    local throttled_on_change, on_change_timer = utils.throttle_leading(
+      function()
+        local is_active_buffer = self.current_location
+          and bufnr == self.current_location.bufnr
+        local is_listed = vim.fn.buflisted(bufnr) == 1
 
-  if bufnr and vim.api.nvim_buf_is_valid(bufnr) then
+        if is_active_buffer and not is_listed then
+          vim.api.nvim_buf_set_option(bufnr, 'buflisted', true)
+          vim.api.nvim_buf_set_option(bufnr, 'bufhidden', '')
+        end
+      end,
+      1000
+    )
+
+    local autocmd_id = vim.api.nvim_create_autocmd(
+      { 'TextChanged', 'TextChangedI' },
+      {
+        group = 'Glance',
+        buffer = bufnr,
+        callback = throttled_on_change,
+      }
+    )
+
+    self.clear_autocmd = function()
+      pcall(vim.api.nvim_del_autocmd, autocmd_id)
+      if on_change_timer then
+        on_change_timer:close()
+        on_change_timer = nil
+      end
+    end
+
     local keymap_opts = {
       buffer = bufnr,
       noremap = true,
@@ -99,10 +128,16 @@ function Preview:on_attach_buffer()
   end
 end
 
-function Preview:on_detach_buffer()
-  local bufnr = (self.current_location or {}).bufnr
-  for lhs, _ in pairs(config.options.mappings.preview) do
-    pcall(vim.api.nvim_buf_del_keymap, bufnr, 'n', lhs)
+function Preview:on_detach_buffer(bufnr)
+  if type(self.clear_autocmd) == 'function' then
+    self.clear_autocmd()
+    self.clear_autocmd = nil
+  end
+
+  if bufnr ~= nil and vim.api.nvim_buf_is_valid(bufnr) then
+    for lhs, _ in pairs(config.options.mappings.preview) do
+      pcall(vim.api.nvim_buf_del_keymap, bufnr, 'n', lhs)
+    end
   end
 end
 
@@ -130,7 +165,7 @@ function Preview:restore_win_opts()
 end
 
 function Preview:close()
-  self:on_detach_buffer()
+  self:on_detach_buffer((self.current_location or {}).bufnr)
   self:restore_win_opts()
 
   if vim.api.nvim_win_is_valid(self.winnr) then
@@ -198,7 +233,7 @@ function Preview:update(item, group)
 
   if current_bufnr ~= item.bufnr then
     self:restore_win_opts()
-    self:on_detach_buffer()
+    self:on_detach_buffer(current_bufnr)
     vim.api.nvim_win_set_buf(self.winnr, item.bufnr)
     utils.win_set_options(self.winnr, win_opts)
 
@@ -207,6 +242,14 @@ function Preview:update(item, group)
       local filepath = vim.fn.fnamemodify(item.filename, ':p:~:h')
       self.winbar:render({ filename = filename, filepath = filepath })
     end
+
+    vim.api.nvim_buf_call(item.bufnr, function()
+      if vim.api.nvim_buf_get_option(item.bufnr, 'filetype') == '' then
+        vim.cmd('do BufRead')
+      end
+    end)
+
+    self:on_attach_buffer(item.bufnr)
   end
 
   vim.api.nvim_win_set_cursor(
@@ -219,14 +262,7 @@ function Preview:update(item, group)
     vim.cmd('norm! zz')
   end)
 
-  vim.api.nvim_buf_call(item.bufnr, function()
-    if vim.api.nvim_buf_get_option(item.bufnr, 'filetype') == '' then
-      vim.cmd('do BufRead')
-    end
-  end)
-
   self.current_location = item
-  self:on_attach_buffer()
 
   if not vim.tbl_contains(touched_buffers, item.bufnr) then
     for _, location in pairs(group.items) do

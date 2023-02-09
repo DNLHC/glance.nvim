@@ -187,4 +187,27 @@ function utils.debounce(fn, delay)
   end
 end
 
+--- Throttles a function on the leading edge. Automatically `schedule_wrap()`s.
+---
+--@param fn (function) Function to throttle
+--@param timeout (number) Timeout in ms
+--@returns (function, timer) throttled function and timer. Remember to call
+---`timer:close()` at the end or you will leak memory!
+function utils.throttle_leading(fn, ms)
+  local timer = vim.loop.new_timer()
+  local running = false
+
+  local function wrapped_fn(...)
+    if not running then
+      timer:start(ms, 0, function()
+        running = false
+      end)
+      running = true
+      pcall(vim.schedule_wrap(fn), select(1, ...))
+    end
+  end
+
+  return wrapped_fn, timer
+end
+
 return utils
