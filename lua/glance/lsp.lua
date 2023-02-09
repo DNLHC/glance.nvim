@@ -65,9 +65,22 @@ M.methods = {
     lsp_method = 'textDocument/definition',
     normalize = true,
   },
+  declarations = {
+    label = 'declarations',
+    lsp_method = 'textDocument/declaration',
+    normalize = true,
+  },
   references = {
     label = 'references',
     lsp_method = 'textDocument/references',
+  },
+  outgoing_calls = {
+    label = 'outgoing calls',
+    lsp_method = 'callHierarchy/outgoingCalls',
+  },
+  incoming_calls = {
+    label = 'incoming calls',
+    lsp_method = 'callHierarchy/incomingCalls',
   },
 }
 

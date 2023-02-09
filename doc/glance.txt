@@ -27,7 +27,7 @@ one place, inspired by vscode’s peek preview.
 FEATURES                                                     *glance-features*
 
 
-- Supports following LSP methods: `definitions`, `type definitions`, `references`, `implementations`
+- Supports following LSP methods: `declarations`, `definitions`, `type definitions`, `references`, `implementations`, `incoming calls`, `outgoing calls`
 - Automatically sets up highlights based on your colorscheme colors
 - Allows editing previewed buffer inside the floating window
 - Intuitive UI
@@ -205,9 +205,12 @@ COMMANDS ~
 
 
 - `:Glance references` show references of the word under the cursor from the LSP server
+- `:Glance declarations` show declarations of the word under the cursor from the LSP server
 - `:Glance definitions` show definitions of the word under the cursor from the LSP server
 - `:Glance type_definitions` show type definitions of the word under the cursor from the LSP server
 - `:Glance implementations` show implementations of the word under the cursor from the LSP server
+- `:Glance incoming_calls` show incoming calls of the word under the cursor from the LSP server
+- `:Glance outgoing_calls` show outgoing calls of the word under the cursor from the LSP server
 
 
 EXAMPLE KEYBINDINGS ~
@@ -215,18 +218,24 @@ EXAMPLE KEYBINDINGS ~
 >
     " VimScript
     nnoremap gR <CMD>Glance references<CR>
+    nnoremap gC <CMD>Glance declarations<CR>
     nnoremap gD <CMD>Glance definitions<CR>
     nnoremap gY <CMD>Glance type_definitions<CR>
     nnoremap gM <CMD>Glance implementations<CR>
+    nnoremap gI <CMD>Glance incoming_calls<CR>
+    nnoremap gO <CMD>Glance outgoing_calls<CR>
 <
 
 
 >
     -- Lua
+    vim.keymap.set('n', 'gC', '<CMD>Glance declarations<CR>')
     vim.keymap.set('n', 'gD', '<CMD>Glance definitions<CR>')
     vim.keymap.set('n', 'gR', '<CMD>Glance references<CR>')
     vim.keymap.set('n', 'gY', '<CMD>Glance type_definitions<CR>')
     vim.keymap.set('n', 'gM', '<CMD>Glance implementations<CR>')
+    vim.keymap.set('n', 'gI', '<CMD>Glance incoming_calls<CR>')
+    vim.keymap.set('n', 'gO', '<CMD>Glance outgoing_calls<CR>')
 <
 
 
