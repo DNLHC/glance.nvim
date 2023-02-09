@@ -265,6 +265,9 @@ Glance.actions = {
         false
       ),
     })
+    -- Manually call the setup in case user hasn't initialized the plugin
+    -- It will only run once
+    Glance.setup()
     open({ method = method })
   end,
 }
