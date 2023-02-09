@@ -6,7 +6,7 @@ A pretty window for previewing, navigating and editing your LSP locations in one
 
 ## Features
 
-- Supports following LSP methods: `declarations`, `definitions`, `type definitions`, `references`, `implementations`, `incoming calls`, `outgoing calls`
+- Supports following LSP methods: `declarations`, `definitions`, `type definitions`, `references`, `implementations`
 - Automatically sets up highlights based on your colorscheme colors
 - Allows editing previewed buffer inside the floating window
 - Intuitive UI
@@ -175,8 +175,6 @@ Triggered after the window is closed
 - `:Glance definitions` show definitions of the word under the cursor from the LSP server
 - `:Glance type_definitions` show type definitions of the word under the cursor from the LSP server
 - `:Glance implementations` show implementations of the word under the cursor from the LSP server
-- `:Glance incoming_calls` show incoming calls of the word under the cursor from the LSP server
-- `:Glance outgoing_calls` show outgoing calls of the word under the cursor from the LSP server
 
 ### Example keybindings
 
@@ -187,8 +185,6 @@ nnoremap gC <CMD>Glance declarations<CR>
 nnoremap gD <CMD>Glance definitions<CR>
 nnoremap gY <CMD>Glance type_definitions<CR>
 nnoremap gM <CMD>Glance implementations<CR>
-nnoremap gI <CMD>Glance incoming_calls<CR>
-nnoremap gO <CMD>Glance outgoing_calls<CR>
 ```
 
 ```lua
@@ -198,8 +194,6 @@ vim.keymap.set('n', 'gD', '<CMD>Glance definitions<CR>')
 vim.keymap.set('n', 'gR', '<CMD>Glance references<CR>')
 vim.keymap.set('n', 'gY', '<CMD>Glance type_definitions<CR>')
 vim.keymap.set('n', 'gM', '<CMD>Glance implementations<CR>')
-vim.keymap.set('n', 'gI', '<CMD>Glance incoming_calls<CR>')
-vim.keymap.set('n', 'gO', '<CMD>Glance outgoing_calls<CR>')
 ```
 
 ## Highlights
