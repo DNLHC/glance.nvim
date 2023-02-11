@@ -52,7 +52,14 @@ function List:new(bufnr, winnr)
     winnr = winnr,
     items = {},
     groups = {},
+    winbar = nil,
   }
+
+  if config.options.winbar.enable then
+    local winbar = Winbar:new(winnr)
+    winbar:append('title', 'WinBarTitle')
+    scope.winbar = winbar
+  end
 
   setmetatable(scope, self)
   return scope
@@ -232,10 +239,8 @@ function List:setup(opts)
   self:update(self.groups)
   local _, location_line = find_location_position(self.items, location)
 
-  if config.options.winbar.enable then
-    local winbar = Winbar:new(self.winnr)
-    winbar:append('title', 'WinBarTitle')
-    winbar:render({
+  if config.options.winbar.enable and self.winbar then
+    self.winbar:render({
       title = string.format(
         '%s (%d)',
         get_lsp_method_label(opts.method),
@@ -270,6 +275,7 @@ function List:destroy()
   self.bufnr = nil
   self.items = nil
   self.groups = nil
+  self.winbar = nil
 end
 
 function List:render(groups)
