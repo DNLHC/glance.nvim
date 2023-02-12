@@ -293,6 +293,11 @@ local function process_locations(locations, position_params, offset_encoding)
     table.sort(rows, position_sort)
     local filename = vim.uri_to_fname(uri)
     local bufnr = vim.uri_to_bufnr(uri)
+    result[filename] = {
+      filename = filename,
+      uri = uri,
+      items = {},
+    }
 
     -- list of row numbers
     local uri_rows = {}
@@ -336,7 +341,7 @@ local function process_locations(locations, position_params, offset_encoding)
         }, 8, line)
       end
 
-      table.insert(result, {
+      local location = {
         filename = filename,
         bufnr = bufnr,
         uri = uri,
@@ -352,7 +357,9 @@ local function process_locations(locations, position_params, offset_encoding)
           uri,
           { start = start, finish = finish }
         ),
-      })
+      }
+
+      table.insert(result[filename].items, location)
     end
   end
 
@@ -364,9 +371,8 @@ local function get_lsp_method_label(method_name)
 end
 
 function List:setup(opts)
-  local processed_locations =
+  self.groups =
     process_locations(opts.results, opts.position_params, opts.offset_encoding)
-  self.groups = utils.list_to_tree(processed_locations)
   local group, location =
     find_starting_group_and_location(self.groups, opts.position_params)
   folds.open(group.filename)

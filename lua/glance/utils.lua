@@ -14,22 +14,6 @@ function utils.create_push_tagstack(parent_winnr)
   end
 end
 
-function utils.list_to_tree(list)
-  local tree = {}
-  for _, item in ipairs(list) do
-    if not tree[item.filename] then
-      tree[item.filename] =
-        { filename = item.filename, uri = item.uri, items = {} }
-    end
-
-    if not vim.tbl_isempty(item) then
-      table.insert(tree[item.filename].items, item)
-    end
-  end
-
-  return tree
-end
-
 function utils.is_float_win(winnr)
   if winnr == nil or not vim.api.nvim_win_is_valid(winnr) then
     return
