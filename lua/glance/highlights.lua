@@ -27,15 +27,25 @@ local extract_colors = {
 
 local function get_hl_value(name, attr)
   local ok, hl = pcall(vim.api.nvim_get_hl_by_name, name, true)
+
   if not ok then
     return 'NONE'
   end
+
   hl.foreground = hl.foreground and '#' .. bit.tohex(hl.foreground, 6)
   hl.background = hl.background and '#' .. bit.tohex(hl.background, 6)
+
+  if hl.reverse then
+    local normal_bg = get_hl_value('Normal', 'bg')
+    hl.background = hl.foreground
+    hl.foreground = normal_bg
+  end
+
   if attr then
     attr = ({ bg = 'background', fg = 'foreground' })[attr] or attr
     return hl[attr] or 'NONE'
   end
+
   return hl.background, hl.foreground
 end
 
