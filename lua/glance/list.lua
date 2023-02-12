@@ -375,7 +375,10 @@ function List:setup(opts)
     process_locations(opts.results, opts.position_params, opts.offset_encoding)
   local group, location =
     find_starting_group_and_location(self.groups, opts.position_params)
+
+  folds.reset()
   folds.open(group.filename)
+
   self:update(self.groups)
   local _, location_line = find_location_position(self.items, location)
 
@@ -390,6 +393,9 @@ function List:setup(opts)
   end
 
   vim.api.nvim_win_set_cursor(self.winnr, { location_line, 1 })
+  vim.schedule(function()
+    vim.cmd('norm! zz')
+  end)
 end
 
 function List:update(groups)
