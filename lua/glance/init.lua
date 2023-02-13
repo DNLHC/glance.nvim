@@ -230,6 +230,16 @@ Glance.actions = {
     glance:update_preview(item)
   end,
   preview_scroll_win = function(distance)
+    vim.validate({
+      distance = {
+        distance,
+        function(v)
+          return type(v) == 'number' and v ~= 0
+        end,
+        'valid number',
+      },
+    })
+
     return function()
       local cmd = distance > 0 and [[\<C-y>]] or [[\<C-e>]]
       vim.api.nvim_win_call(glance.preview.winnr, function()
