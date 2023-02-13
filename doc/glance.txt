@@ -1,4 +1,4 @@
-*glance.txt*           For NVIM v0.8.0           Last change: 2023 February 12
+*glance.txt*           For NVIM v0.8.0           Last change: 2023 February 13
 
 ==============================================================================
 Table of Contents                                   *glance-table-of-contents*
