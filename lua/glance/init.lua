@@ -51,20 +51,62 @@ local function get_preview_win_height(winnr)
   return math.min(vim.fn.winheight(winnr), config.options.height)
 end
 
+local function is_detached(winnr)
+  local detached = config.options.detached
+  if type(detached) == 'function' then
+    return detached(winnr)
+  end
+  return detached
+end
+
+local function get_win_above(winnr)
+  return vim.api.nvim_win_call(winnr, function()
+    return vim.fn.win_getid(vim.fn.winnr('k'))
+  end)
+end
+
+local function get_offset_top(winnr)
+  local win_above = get_win_above(winnr)
+  if winnr ~= win_above and not utils.is_float_win(win_above) then
+    -- plus 1 for the border
+    return vim.fn.winheight(win_above) + get_offset_top(win_above) + 1
+  end
+  return 0
+end
+
 local function get_win_opts(winnr, line)
-  local win_width = vim.fn.winwidth(winnr)
-  local list_width = utils.round(
-    win_width * math.min(0.5, math.max(0.1, config.options.list.width))
-  )
+  local opts = config.options
+  local detached = is_detached(winnr)
+  local win_width = detached and vim.o.columns or vim.fn.winwidth(winnr)
+  local list_width =
+    utils.round(win_width * math.min(0.5, math.max(0.1, opts.list.width)))
   local preview_width = win_width - list_width
   local height = get_preview_win_height(winnr)
-  local list_pos = config.options.list.position
+  local list_pos = opts.list.position
+  local row = line
+
+  if detached then
+    local winbar_space = vim.api.nvim_win_call(winnr, function()
+      if vim.fn.has('nvim-0.8') ~= 0 then
+        return vim.o.winbar ~= '' and 1 or 0
+      end
+      return 0
+    end)
+
+    local tabline_space = vim.api.nvim_win_call(winnr, function()
+      return vim.o.tabline ~= '' and 1 or 0
+    end)
+
+    local offset = get_offset_top(winnr)
+    row = offset + line + winbar_space + tabline_space
+  end
+
   local win_opts = {
-    relative = 'win',
+    relative = detached and 'editor' or 'win',
     height = height,
-    win = winnr,
-    zindex = config.options.zindex,
-    row = line,
+    win = (not detached) and winnr or nil,
+    zindex = opts.zindex,
+    row = row,
   }
 
   local list_win_opts = vim.tbl_extend('keep', {
