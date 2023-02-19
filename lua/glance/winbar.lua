@@ -32,7 +32,9 @@ function Winbar:render(section_values)
 
   self.last_values = section_values
   vim.schedule(function()
-    vim.api.nvim_win_set_option(self.winnr, 'winbar', winbar_value)
+    if vim.api.nvim_win_is_valid(self.winnr) then
+      vim.api.nvim_win_set_option(self.winnr, 'winbar', winbar_value)
+    end
   end)
 end
 
