@@ -451,27 +451,25 @@ function List:render(groups)
       renderer:nl()
 
       if not is_folded then
-        self:render_locations(group.items, renderer)
+        self:render_locations(group.items, renderer, true)
       end
     end
   else
     local _, group = next(groups)
-    self:render_locations(group.items, renderer)
+    self:render_locations(group.items, renderer, false)
   end
 
   renderer:render()
   renderer:highlight()
 end
 
-function List:render_locations(locations, renderer)
+function List:render_locations(locations, renderer, renderIndentLine)
   for _, location in ipairs(locations) do
     self.items[renderer.line_nr + 1] = location
 
-    local indent = '    '
-    if config.options.indent_lines.enable then
+    local indent = ' '
+    if config.options.indent_lines.enable and renderIndentLine then
       indent = string.format(' %s  ', config.options.indent_lines.icon)
-    elseif not config.options.folds.enable then
-      indent = ' '
     end
 
     renderer:append(indent, 'Indent')
