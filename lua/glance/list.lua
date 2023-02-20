@@ -463,13 +463,15 @@ function List:render(groups)
   renderer:highlight()
 end
 
-function List:render_locations(locations, renderer, renderIndentLine)
+function List:render_locations(locations, renderer, render_indent_line)
+  local opts = config.options
+
   for _, location in ipairs(locations) do
     self.items[renderer.line_nr + 1] = location
 
     local indent = ' '
-    if config.options.indent_lines.enable and renderIndentLine then
-      indent = string.format(' %s  ', config.options.indent_lines.icon)
+    if opts.indent_lines.enable and render_indent_line then
+      indent = string.format(' %s  ', opts.indent_lines.icon)
     end
 
     renderer:append(indent, 'Indent')
