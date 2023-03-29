@@ -373,6 +373,9 @@ function Glance:scroll_into_view(winnr, position)
     return 0
   end
 
+  local scrolloff_value = vim.wo.scrolloff
+  vim.wo.scrolloff = 0
+
   -- Scroll the window down until we have enough rows to render the preview window.
   -- Needs to be done row by row because the <C-e> command scrolls over lines and not rows
   -- some lines can take more than 1 row when 'wrap' is enabled
@@ -381,6 +384,8 @@ function Glance:scroll_into_view(winnr, position)
     vim.cmd([[exec "norm! \<C-e>"]])
     row = vim.fn.winline()
   end
+
+  vim.wo.scrolloff = scrolloff_value
 
   return row
 end
