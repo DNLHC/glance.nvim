@@ -314,6 +314,15 @@ Glance.actions = {
     Glance.setup()
     open({ method = method })
   end,
+  toggle_fold = function()
+    glance:toggle_fold()
+  end,
+  open_fold = function()
+    glance:toggle_fold(true)
+  end,
+  close_fold = function()
+    glance:toggle_fold(false)
+  end,
 }
 
 function Glance:create(opts)
@@ -424,6 +433,19 @@ function Glance:jump(opts)
   vim.cmd('norm! zz')
 
   self:destroy()
+end
+
+function Glance:toggle_fold(expand)
+  local item = self.list:get_current_item()
+  if not item or item.is_unreachable then
+    return
+  end
+  if expand == nil then
+    return self.list:toggle_fold(item)
+  elseif expand then
+    return self.list:open_fold(item)
+  end
+  return self.list:close_fold(item)
 end
 
 function Glance:update_preview(item)

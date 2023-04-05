@@ -592,4 +592,14 @@ function List:toggle_fold(item)
   self:update(self.groups)
 end
 
+function List:open_fold(item)
+  folds.open(item.filename)
+  self:update(self.groups)
+end
+
+function List:close_fold(item)
+  folds.close(item.filename)
+  self:update(self.groups)
+end
+
 return List
