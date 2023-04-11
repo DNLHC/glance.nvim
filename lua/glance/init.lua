@@ -318,21 +318,13 @@ Glance.actions = {
     local qf_items = {}
     for _, group in pairs(glance.list.groups) do
       for _, item in ipairs(group.items) do
-        local end_lnum = vim.tbl_get(item, 'finish', 'line')
-        if end_lnum then
-          end_lnum = end_lnum + 1
-        end
-        local end_col = vim.tbl_get(item, 'finish', 'character')
-        if end_col then
-          end_col = end_col + 1
-        end
         table.insert(qf_items, {
           bufnr = item.bufnr,
           filename = item.filename,
-          lnum = item.lnum,
-          end_lnum = end_lnum,
-          col = item.col,
-          end_col = end_col,
+          lnum = item.start_line + 1,
+          end_lnum = item.end_line + 1,
+          col = item.start_col + 1,
+          end_col = item.end_col + 1,
           text = item.full_text,
         })
       end
