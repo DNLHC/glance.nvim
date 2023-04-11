@@ -30,9 +30,11 @@ end
 
 function Renderer:append(str, group, opts)
   str = str:gsub('[\n]', ' ')
+
   if type(opts) == 'string' then
     opts = { append = opts }
   end
+
   opts = opts or {}
 
   if group then
@@ -46,7 +48,9 @@ function Renderer:append(str, group, opts)
     }
     table.insert(self.hl, hl)
   end
+
   self.current = self.current .. str
+
   if opts.append then
     self.current = self.current .. opts.append
   end

@@ -14,22 +14,6 @@ function utils.create_push_tagstack(parent_winnr)
   end
 end
 
-function utils.list_to_tree(list)
-  local tree = {}
-  for _, item in ipairs(list) do
-    if not tree[item.filename] then
-      tree[item.filename] =
-        { filename = item.filename, uri = item.uri, items = {} }
-    end
-
-    if not vim.tbl_isempty(item) then
-      table.insert(tree[item.filename].items, item)
-    end
-  end
-
-  return tree
-end
-
 function utils.is_float_win(winnr)
   if winnr == nil or not vim.api.nvim_win_is_valid(winnr) then
     return
@@ -51,6 +35,7 @@ function utils.valid_enum(arg, values, optional)
     ),
   }
 end
+
 function utils.get_word_until_position(pos, text)
   pos = math.max(0, pos)
   local str = string.sub(text, 0, pos)
@@ -128,6 +113,24 @@ function utils.buf_set_options(bufnr, opts)
   end
 end
 
+function utils.get_line_byte_from_position(line, position, offset_encoding)
+  -- LSP's line and characters are 0-indexed
+  -- Vim's line and columns are 1-indexed
+  local col = position.character
+  -- When on the first character, we can ignore the difference between byte and
+  -- character
+  if col > 0 then
+    local ok, result
+    ok, result =
+      pcall(vim.lsp.util._str_byteindex_enc, line, col, offset_encoding)
+    if ok then
+      return result
+    end
+    return math.min(#line, col)
+  end
+  return col
+end
+
 function utils.round(n)
   return n >= 0 and math.floor(n + 0.5) or math.ceil(n - 0.5)
 end
@@ -166,6 +169,29 @@ function utils.debounce(fn, delay)
       timer = nil
     end, delay)
   end
+end
+
+--- Throttles a function on the leading edge. Automatically `schedule_wrap()`s.
+---
+--@param fn (function) Function to throttle
+--@param timeout (number) Timeout in ms
+--@returns (function, timer) throttled function and timer. Remember to call
+---`timer:close()` at the end or you will leak memory!
+function utils.throttle_leading(fn, ms)
+  local timer = vim.loop.new_timer()
+  local running = false
+
+  local function wrapped_fn(...)
+    if not running then
+      timer:start(ms, 0, function()
+        running = false
+      end)
+      running = true
+      pcall(vim.schedule_wrap(fn), select(1, ...))
+    end
+  end
+
+  return wrapped_fn, timer
 end
 
 return utils

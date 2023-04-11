@@ -37,20 +37,29 @@ function List.create(opts)
   local bufnr = vim.api.nvim_create_buf(false, true)
   local winnr = vim.api.nvim_open_win(bufnr, true, opts.win_opts)
 
-  local list = List:new(bufnr, winnr, opts.results)
+  local list = List:new(bufnr, winnr)
+  utils.win_set_options(winnr, win_opts)
+  utils.buf_set_options(bufnr, buf_opts)
   list:setup(opts)
+  list:set_keymaps()
 
   return list
 end
 
-function List:new(bufnr, winnr, locations)
+function List:new(bufnr, winnr)
   local scope = {
     bufnr = bufnr,
     winnr = winnr,
     items = {},
-    count = #locations,
     groups = {},
+    winbar = nil,
   }
+
+  if config.options.winbar.enable then
+    local winbar = Winbar:new(winnr)
+    winbar:append('title', 'WinBarTitle')
+    scope.winbar = winbar
+  end
 
   setmetatable(scope, self)
   return scope
@@ -75,7 +84,7 @@ function List:is_valid()
   return self.winnr and vim.api.nvim_win_is_valid(self.winnr)
 end
 
-local function find_location_pos(items, location)
+local function find_location_position(items, location)
   return utils.tbl_find(items, function(item)
     return vim.deep_equal(item, location)
   end)
@@ -87,22 +96,22 @@ local function find_starting_location(locations)
   end)
 end
 
-local function find_starting_group_and_location(groups, opts)
-  local same_file = {}
+local function find_starting_group_and_location(groups, position_params)
+  local fallback = nil
   for _, group in pairs(groups) do
-    local has_starting_loc = find_starting_location(group.items)
+    local starting_location = find_starting_location(group.items)
 
-    if has_starting_loc then
-      return group, has_starting_loc
+    if starting_location then
+      return group, starting_location
     end
 
-    if opts.uri == group.uri then
-      table.insert(same_file, { group = group, loc = group.items[1] })
+    if not fallback and position_params.textDocument.uri == group.uri then
+      fallback = { group = group, location = group.items[1] }
     end
   end
 
-  if not vim.tbl_isempty(same_file) then
-    return same_file[1].group, same_file[1].loc
+  if fallback then
+    return fallback.group, fallback.location
   end
 
   -- if nothing was found return the first group and location
@@ -110,21 +119,25 @@ local function find_starting_group_and_location(groups, opts)
   return group, group.items[1]
 end
 
-local function is_starting_location(opts, loc_uri, loc_range)
-  if loc_uri ~= opts.uri then
+local function is_starting_location(
+  position_params,
+  location_uri,
+  location_range
+)
+  if location_uri ~= position_params.textDocument.uri then
     return false
   end
 
   local range = Range:new(
-    loc_range.start.line,
-    loc_range.start.character,
-    loc_range.finish.line,
-    loc_range.finish.character
+    location_range.start.line,
+    location_range.start.character,
+    location_range.finish.line,
+    location_range.finish.character
   )
 
   return range:contains_position({
-    line = opts.pos.line,
-    col = opts.pos.character,
+    line = position_params.position.line,
+    col = position_params.position.character,
   })
 end
 
@@ -152,63 +165,205 @@ local function get_preview_line(range, offset, text)
   }
 end
 
-local function process_locations(locations, opts)
-  return vim.tbl_map(function(location)
-    local is_unreachable = false
-    local preview_line, line
-    local uri = location.uri or location.targetUri
-    local bufnr = vim.uri_to_bufnr(uri)
-    local filename = vim.api.nvim_buf_get_name(bufnr)
-    local range = location.range or location.targetSelectionRange
-    local start = range['start']
-    local finish = range['end']
+---@private
+--- from: https://github.com/neovim/neovim/blob/master/runtime/lua/vim/lsp/util.lua
+--- Gets the zero-indexed lines from the given buffer.
+--- Works on unloaded buffers by reading the file using libuv to bypass buf reading events.
+--- Falls back to loading the buffer and nvim_buf_get_lines for buffers with non-file URI.
+---
+---@param bufnr number bufnr to get the lines from
+---@param rows number[] zero-indexed line numbers
+---@return table<number, string> | nil a table mapping rows to lines
+local function get_lines(bufnr, uri, rows)
+  rows = type(rows) == 'table' and rows or { rows }
 
-    local row = start.line
-    local col = start.character
+  -- This is needed for bufload and bufloaded
+  if bufnr == 0 then
+    bufnr = vim.api.nvim_get_current_buf()
+  end
 
-    if vim.lsp.util.get_line then
-      line = vim.lsp.util.get_line(uri, row)
-    else
-      if not vim.api.nvim_buf_is_loaded(bufnr) then
-        vim.fn.bufload(bufnr)
+  ---@private
+  local function buf_lines()
+    local lines = {}
+    for _, row in pairs(rows) do
+      lines[row] = (vim.api.nvim_buf_get_lines(bufnr, row, row + 1, false) or {
+        '',
+      })[1]
+    end
+    return lines
+  end
+
+  -- load the buffer if this is not a file uri
+  -- Custom language server protocol extensions can result in servers sending URIs with custom schemes. Plugins are able to load these via `BufReadCmd` autocmds.
+  if uri:sub(1, 4) ~= 'file' then
+    vim.fn.bufload(bufnr)
+    return buf_lines()
+  end
+
+  -- use loaded buffers if available
+  if vim.fn.bufloaded(bufnr) == 1 then
+    return buf_lines()
+  end
+
+  local filename = vim.api.nvim_buf_get_name(bufnr)
+
+  -- get the data from the file
+  local fd = vim.loop.fs_open(filename, 'r', 438)
+
+  if not fd then
+    return nil
+  end
+
+  local stat = vim.loop.fs_fstat(fd)
+  local data = vim.loop.fs_read(fd, stat.size, 0)
+  vim.loop.fs_close(fd)
+
+  local lines = {} -- rows we need to retrieve
+  local rows_needed = 0 -- keep track of how many unique rows we need
+  for _, row in pairs(rows) do
+    if not lines[row] then
+      rows_needed = rows_needed + 1
+    end
+    lines[row] = true
+  end
+
+  local found = 0
+  local lnum = 0
+
+  for line in string.gmatch(data, '([^\n]*)\n?') do
+    if lines[lnum] == true then
+      lines[lnum] = line
+      found = found + 1
+      if found == rows_needed then
+        break
       end
-      line = (vim.api.nvim_buf_get_lines(bufnr, row, row + 1, false) or { '' })[1]
     end
+    lnum = lnum + 1
+  end
 
-    if not line then
-      line = ('%s:%d:%d'):format(
-        vim.fn.fnamemodify(filename, ':t'),
-        row + 1,
-        col + 1
-      )
-      is_unreachable = true
-    else
-      preview_line = get_preview_line({
-        start_line = row,
-        start_col = col,
-        end_col = finish.character,
-        end_line = finish.line,
-      }, 10, line)
+  -- change any lines we didn't find to the empty string
+  for i, line in pairs(lines) do
+    if line == true then
+      lines[i] = ''
     end
+  end
+  return lines
+end
 
-    return {
-      bufnr = bufnr,
+local function sort_by_key(fn)
+  return function(a, b)
+    local ka, kb = fn(a), fn(b)
+    assert(#ka == #kb)
+    for i = 1, #ka do
+      if ka[i] ~= kb[i] then
+        return ka[i] < kb[i]
+      end
+    end
+    -- every value must have been equal here, which means it's not less than.
+    return false
+  end
+end
+
+local position_sort = sort_by_key(function(v)
+  return { v.start.line, v.start.character }
+end)
+
+local function process_locations(locations, position_params, offset_encoding)
+  local result = {}
+
+  local grouped = setmetatable({}, {
+    __index = function(t, k)
+      local v = {}
+      rawset(t, k, v)
+      return v
+    end,
+  })
+
+  for _, location in ipairs(locations) do
+    local uri = location.uri or location.targetUri
+    local range = location.range or location.targetSelectionRange
+    table.insert(grouped[uri], { start = range.start, finish = range['end'] })
+  end
+
+  local keys = vim.tbl_keys(grouped)
+  table.sort(keys)
+
+  for _, uri in ipairs(keys) do
+    local rows = grouped[uri]
+    table.sort(rows, position_sort)
+    local filename = vim.uri_to_fname(uri)
+    local bufnr = vim.uri_to_bufnr(uri)
+    result[filename] = {
       filename = filename,
       uri = uri,
-      preview_line = preview_line,
-      lnum = row + 1,
-      col = col + 1,
-      is_starting = is_starting_location(
-        opts,
-        uri,
-        { start = start, finish = finish }
-      ),
-      start = start,
-      finish = finish,
-      full_text = line or '',
-      is_unreachable = is_unreachable,
+      items = {},
     }
-  end, locations or {})
+
+    -- list of row numbers
+    local uri_rows = {}
+
+    for _, position in ipairs(rows) do
+      local row = position.start.line
+      table.insert(uri_rows, row)
+    end
+
+    -- get all the lines for this uri
+    local lines = get_lines(bufnr, uri, uri_rows)
+
+    for _, position in ipairs(rows) do
+      local preview_line
+      local is_unreachable = false
+      local start = position.start
+      local finish = position.finish
+      local start_col = start.character
+      local end_col = finish.character
+      local row = start.line
+      local line = lines and lines[row]
+
+      if not line then
+        line = ('%s:%d:%d'):format(
+          vim.fn.fnamemodify(filename, ':t'),
+          start_col + 1,
+          end_col + 1
+        )
+        is_unreachable = true
+      else
+        start_col =
+          utils.get_line_byte_from_position(line, start, offset_encoding)
+        end_col =
+          utils.get_line_byte_from_position(line, finish, offset_encoding)
+
+        preview_line = get_preview_line({
+          start_line = row,
+          start_col = start_col,
+          end_col = end_col,
+          end_line = finish.line,
+        }, 8, line)
+      end
+
+      local location = {
+        filename = filename,
+        bufnr = bufnr,
+        uri = uri,
+        preview_line = preview_line,
+        is_unreachable = is_unreachable,
+        full_text = line or '',
+        start_line = start.line,
+        end_line = finish.line,
+        start_col = start_col,
+        end_col = end_col,
+        is_starting = is_starting_location(
+          position_params,
+          uri,
+          { start = start, finish = finish }
+        ),
+      }
+
+      table.insert(result[filename].items, location)
+    end
+  end
+
+  return result
 end
 
 local function get_lsp_method_label(method_name)
@@ -216,32 +371,31 @@ local function get_lsp_method_label(method_name)
 end
 
 function List:setup(opts)
-  vim.api.nvim_buf_set_name(self.bufnr, 'Glance')
-  utils.win_set_options(self.winnr, win_opts)
-  utils.buf_set_options(self.bufnr, buf_opts)
+  self.groups =
+    process_locations(opts.results, opts.position_params, opts.offset_encoding)
+  local group, location =
+    find_starting_group_and_location(self.groups, opts.position_params)
 
-  local processed_locations = process_locations(opts.results, opts)
-  self.groups = utils.list_to_tree(processed_locations)
-  local group, location = find_starting_group_and_location(self.groups, opts)
+  folds.reset()
   folds.open(group.filename)
-  self:render(self.groups)
-  local _, location_line = find_location_pos(self.items, location)
 
-  if config.options.winbar.enable then
-    local winbar = Winbar:new(self.winnr)
-    winbar:append('title', 'WinBarTitle')
-    winbar:render({
+  self:update(self.groups)
+  local _, location_line = find_location_position(self.items, location)
+
+  if config.options.winbar.enable and self.winbar then
+    self.winbar:render({
       title = string.format(
         '%s (%d)',
         get_lsp_method_label(opts.method),
-        self.count
+        #opts.results
       ),
     })
   end
 
   vim.api.nvim_win_set_cursor(self.winnr, { location_line, 1 })
-  utils.buf_set_options(self.bufnr, { modifiable = false, readonly = true })
-  self:set_keymaps()
+  vim.schedule(function()
+    vim.cmd('norm! zz')
+  end)
 end
 
 function List:update(groups)
@@ -266,8 +420,8 @@ function List:destroy()
   self.winnr = nil
   self.bufnr = nil
   self.items = nil
-  self.count = nil
   self.groups = nil
+  self.winbar = nil
 end
 
 function List:render(groups)
@@ -279,9 +433,10 @@ function List:render(groups)
       self.items[renderer.line_nr + 1] = {
         filename = filename,
         uri = group.uri,
-        is_file = true,
+        is_group = true,
         count = #group.items,
       }
+
       local is_folded = folds.is_folded(filename)
       local fold_icon = is_folded and icons.fold_closed or icons.fold_open
 
@@ -296,27 +451,27 @@ function List:render(groups)
       renderer:nl()
 
       if not is_folded then
-        self:render_locations(group.items, renderer)
+        self:render_locations(group.items, renderer, true)
       end
     end
   else
     local _, group = next(groups)
-    self:render_locations(group.items, renderer)
+    self:render_locations(group.items, renderer, false)
   end
 
   renderer:render()
   renderer:highlight()
 end
 
-function List:render_locations(locations, renderer)
+function List:render_locations(locations, renderer, render_indent_line)
+  local opts = config.options
+
   for _, location in ipairs(locations) do
     self.items[renderer.line_nr + 1] = location
 
-    local indent = '    '
-    if config.options.indent_lines.enable then
-      indent = string.format(' %s  ', config.options.indent_lines.icon)
-    elseif not config.options.folds.enable then
-      indent = ' '
+    local indent = ' '
+    if opts.indent_lines.enable and render_indent_line then
+      indent = string.format(' %s  ', opts.indent_lines.icon)
     end
 
     renderer:append(indent, 'Indent')
@@ -352,17 +507,44 @@ function List:get_current_item()
   return item
 end
 
+---@param opts { start: integer, backwards?: boolean, cycle?: boolean }
+function List:walk(opts)
+  local idx = opts.start
+  return function()
+    local line_count = vim.api.nvim_buf_line_count(self.bufnr)
+    idx = idx + (opts.backwards and -1 or 1)
+    if opts.cycle then
+      idx = ((idx - 1) % line_count) + 1
+    end
+    local item = self.items[idx]
+    if not item or idx > line_count then
+      return nil
+    end
+    return idx, item
+  end
+end
+
 function List:next(opts)
   opts = opts or {}
-  for i = self:get_line() + 1 + (opts.skip or 0), vim.api.nvim_buf_line_count(self.bufnr), 1 do
-    local item = self.items[i]
-    if item and opts.loc_only and item.is_file then
-      if folds.is_folded(item.filename) then
-        self:toggle_fold(item)
-      end
-      return self:next({ skip = 1 })
+  for i, item in
+    self:walk({
+      start = self:get_line() + (opts.offset or 0),
+      cycle = opts.cycle,
+    })
+  do
+    if
+      opts.skip_groups
+      and item.is_group
+      and folds.is_folded(item.filename)
+    then
+      self:toggle_fold(item)
+      return self:next({
+        offset = i - self:get_line(), -- offset by how far we've already iterated prior to unfolding
+        cycle = opts.cycle,
+        skip_groups = true,
+      })
     end
-    if item and not (opts.loc_only and item.is_file) then
+    if not (opts.skip_groups and item.is_group) then
       vim.api.nvim_win_set_cursor(self.winnr, { i, self:get_col() })
       return item
     end
@@ -372,16 +554,27 @@ end
 
 function List:previous(opts)
   opts = opts or {}
-  for i = self:get_line() - 1 + (opts.skip or 0), 0, -1 do
-    local item = self.items[i]
-    if item and opts.loc_only and item.is_file then
-      if folds.is_folded(item.filename) then
-        self:toggle_fold(item)
-        return self:previous({ skip = item.count - 1 })
-      end
-      return self:previous({ skip = -1, loc_only = true })
+  for i, item in
+    self:walk({
+      start = self:get_line() + (opts.offset or 0),
+      cycle = opts.cycle,
+      backwards = true,
+    })
+  do
+    if
+      opts.skip_groups
+      and item.is_group
+      and folds.is_folded(item.filename)
+    then
+      local is_last_line = i == vim.api.nvim_buf_line_count(self.bufnr)
+      self:toggle_fold(item)
+      return self:previous({
+        offset = is_last_line and 0 or item.count, -- offset by how many new items were added after unfolding
+        cycle = opts.cycle,
+        skip_groups = true,
+      })
     end
-    if item and not (opts.loc_only and item.is_file) then
+    if not (opts.skip_groups and item.is_group) then
       vim.api.nvim_win_set_cursor(self.winnr, { i, self:get_col() })
       return item
     end
@@ -396,6 +589,16 @@ end
 
 function List:toggle_fold(item)
   folds.toggle(item.filename)
+  self:update(self.groups)
+end
+
+function List:open_fold(item)
+  folds.open(item.filename)
+  self:update(self.groups)
+end
+
+function List:close_fold(item)
+  folds.close(item.filename)
   self:update(self.groups)
 end
 

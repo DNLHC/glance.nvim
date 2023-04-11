@@ -1,13 +1,18 @@
 name: panvimdoc
 
-on: [push]
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "README.md"
 
 jobs:
   docs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     name: pandoc to vimdoc
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: panvimdoc
         uses: kdheepak/panvimdoc@main
         with:

@@ -9,6 +9,9 @@ function config.setup(user_config, actions)
   local defaults = {
     height = 18,
     zindex = 45,
+    detached = function(winid)
+      return vim.api.nvim_win_get_width(winid) < 100
+    end,
     preview_win_opts = {
       cursorline = true,
       number = true,

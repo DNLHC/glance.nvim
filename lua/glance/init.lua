@@ -6,7 +6,6 @@ local Glance = {}
 local glance = {}
 Glance.__index = Glance
 local initialized = false
-local is_fetching = false
 
 function Glance.setup(opts)
   if initialized then
@@ -52,20 +51,62 @@ local function get_preview_win_height(winnr)
   return math.min(vim.fn.winheight(winnr), config.options.height)
 end
 
+local function is_detached(winnr)
+  local detached = config.options.detached
+  if type(detached) == 'function' then
+    return detached(winnr)
+  end
+  return detached
+end
+
+local function get_win_above(winnr)
+  return vim.api.nvim_win_call(winnr, function()
+    return vim.fn.win_getid(vim.fn.winnr('k'))
+  end)
+end
+
+local function get_offset_top(winnr)
+  local win_above = get_win_above(winnr)
+  if winnr ~= win_above and not utils.is_float_win(win_above) then
+    -- plus 1 for the border
+    return vim.fn.winheight(win_above) + get_offset_top(win_above) + 1
+  end
+  return 0
+end
+
 local function get_win_opts(winnr, line)
-  local win_width = vim.fn.winwidth(winnr)
-  local list_width = utils.round(
-    win_width * math.min(0.5, math.max(0.1, config.options.list.width))
-  )
+  local opts = config.options
+  local detached = is_detached(winnr)
+  local win_width = detached and vim.o.columns or vim.fn.winwidth(winnr)
+  local list_width =
+    utils.round(win_width * math.min(0.5, math.max(0.1, opts.list.width)))
   local preview_width = win_width - list_width
   local height = get_preview_win_height(winnr)
-  local list_pos = config.options.list.position
+  local list_pos = opts.list.position
+  local row = line
+
+  if detached then
+    local winbar_space = vim.api.nvim_win_call(winnr, function()
+      if vim.fn.has('nvim-0.8') ~= 0 then
+        return vim.o.winbar ~= '' and 1 or 0
+      end
+      return 0
+    end)
+
+    local tabline_space = vim.api.nvim_win_call(winnr, function()
+      return vim.o.tabline ~= '' and 1 or 0
+    end)
+
+    local offset = get_offset_top(winnr)
+    row = offset + line + winbar_space + tabline_space
+  end
+
   local win_opts = {
-    relative = 'win',
+    relative = detached and 'editor' or 'win',
     height = height,
-    win = winnr,
-    zindex = config.options.zindex,
-    row = line,
+    win = (not detached) and winnr or nil,
+    zindex = opts.zindex,
+    row = row,
   }
 
   local list_win_opts = vim.tbl_extend('keep', {
@@ -84,13 +125,21 @@ local function get_win_opts(winnr, line)
   return list_win_opts, preview_win_opts
 end
 
-local function create(results, parent_bufnr, parent_winnr, params, method)
+local function create(
+  results,
+  parent_bufnr,
+  parent_winnr,
+  params,
+  method,
+  offset_encoding
+)
   glance = Glance:create({
     bufnr = parent_bufnr,
     winnr = parent_winnr,
     params = params,
     results = results,
     method = method,
+    offset_encoding = offset_encoding,
   })
 
   local augroup = vim.api.nvim_create_augroup('Glance', { clear = true })
@@ -132,40 +181,53 @@ local function create(results, parent_bufnr, parent_winnr, params, method)
 end
 
 local function open(opts)
-  if is_fetching then
-    return
-  end
-
-  is_fetching = true
   local lsp = require('glance.lsp')
   local parent_bufnr = vim.api.nvim_get_current_buf()
   local parent_winnr = vim.api.nvim_get_current_win()
   local params = vim.lsp.util.make_position_params()
 
   lsp.request(opts.method, params, parent_bufnr, function(results, ctx)
-    is_fetching = false
-
     if vim.tbl_isempty(results) then
       return utils.info(('No %s found'):format(lsp.methods[opts.method].label))
     end
 
-    local _open = function(_results)
-      _results = _results or results
-      create(_results, parent_bufnr, parent_winnr, params, opts.method)
-    end
+    local client = vim.lsp.get_client_by_id(ctx.client_id)
 
-    local _jump = function(result)
-      result = result or results[1]
-      local client = vim.lsp.get_client_by_id(ctx.client_id)
-      vim.lsp.util.jump_to_location(result, client.offset_encoding)
-    end
-
-    local hooks = config.options.hooks
-
-    if hooks and type(hooks.before_open) == 'function' then
-      hooks.before_open(results, _open, _jump, opts.method)
+    if is_open() then
+      glance.list:setup({
+        results = results,
+        position_params = params,
+        method = opts.method,
+        offset_encoding = client.offset_encoding,
+      })
+      glance.preview:clear_hl()
+      glance:update_preview(glance.list:get_current_item())
+      vim.api.nvim_set_current_win(glance.list.winnr)
     else
-      _open()
+      local _open = function(_results)
+        _results = _results or results
+        create(
+          _results,
+          parent_bufnr,
+          parent_winnr,
+          params,
+          opts.method,
+          client.offset_encoding
+        )
+      end
+
+      local _jump = function(result)
+        result = result or results[1]
+        vim.lsp.util.jump_to_location(result, client.offset_encoding)
+      end
+
+      local hooks = config.options.hooks
+
+      if hooks and type(hooks.before_open) == 'function' then
+        hooks.before_open(results, _open, _jump, opts.method)
+      else
+        _open()
+      end
     end
   end)
 end
@@ -202,14 +264,24 @@ Glance.actions = {
     glance:update_preview(item)
   end,
   next_location = function()
-    local item = glance.list:next({ loc_only = true })
+    local item = glance.list:next({ skip_groups = true, cycle = true })
     glance:update_preview(item)
   end,
   previous_location = function()
-    local item = glance.list:previous({ loc_only = true })
+    local item = glance.list:previous({ skip_groups = true, cycle = true })
     glance:update_preview(item)
   end,
   preview_scroll_win = function(distance)
+    vim.validate({
+      distance = {
+        distance,
+        function(v)
+          return type(v) == 'number' and v ~= 0
+        end,
+        'valid number',
+      },
+    })
+
     return function()
       local cmd = distance > 0 and [[\<C-y>]] or [[\<C-e>]]
       vim.api.nvim_win_call(glance.preview.winnr, function()
@@ -237,9 +309,9 @@ Glance.actions = {
         false
       ),
     })
-    if is_open() then
-      Glance.actions.close()
-    end
+    -- Manually call the setup in case user hasn't initialized the plugin
+    -- It will only run once
+    Glance.setup()
     open({ method = method })
   end,
   quickfix = function()
@@ -269,6 +341,15 @@ Glance.actions = {
     Glance.actions.close()
     vim.cmd.copen()
   end,
+  toggle_fold = function()
+    glance:toggle_fold()
+  end,
+  open_fold = function()
+    glance:toggle_fold(true)
+  end,
+  close_fold = function()
+    glance:toggle_fold(false)
+  end,
 }
 
 function Glance:create(opts)
@@ -279,11 +360,12 @@ function Glance:create(opts)
   local list = require('glance.list').create({
     results = opts.results,
     parent_winnr = opts.winnr,
-    uri = opts.params.textDocument.uri,
-    pos = opts.params.position,
+    position_params = opts.params,
     method = opts.method,
     win_opts = list_win_opts,
+    offset_encoding = opts.offset_encoding,
   })
+
   local preview = require('glance.preview').create({
     parent_winnr = opts.winnr,
     parent_bufnr = opts.bufnr,
@@ -327,6 +409,9 @@ function Glance:scroll_into_view(winnr, position)
     return 0
   end
 
+  local scrolloff_value = vim.wo.scrolloff
+  vim.wo.scrolloff = 0
+
   -- Scroll the window down until we have enough rows to render the preview window.
   -- Needs to be done row by row because the <C-e> command scrolls over lines and not rows
   -- some lines can take more than 1 row when 'wrap' is enabled
@@ -335,6 +420,8 @@ function Glance:scroll_into_view(winnr, position)
     vim.cmd([[exec "norm! \<C-e>"]])
     row = vim.fn.winline()
   end
+
+  vim.wo.scrolloff = scrolloff_value
 
   return row
 end
@@ -348,7 +435,7 @@ function Glance:jump(opts)
     return
   end
 
-  if current_item.is_file then
+  if current_item.is_group then
     return self.list:toggle_fold(current_item)
   end
 
@@ -368,15 +455,28 @@ function Glance:jump(opts)
 
   vim.api.nvim_win_set_cursor(
     0,
-    { current_item.start.line + 1, current_item.start.character }
+    { current_item.start_line + 1, current_item.start_col }
   )
   vim.cmd('norm! zz')
 
   self:destroy()
 end
 
+function Glance:toggle_fold(expand)
+  local item = self.list:get_current_item()
+  if not item or item.is_unreachable then
+    return
+  end
+  if expand == nil then
+    return self.list:toggle_fold(item)
+  elseif expand then
+    return self.list:open_fold(item)
+  end
+  return self.list:close_fold(item)
+end
+
 function Glance:update_preview(item)
-  if item and not item.is_file then
+  if item and not item.is_group then
     local group = self.list:get_active_group({ location = item })
     self.preview:update(item, group)
   end
@@ -392,6 +492,7 @@ function Glance:close()
   if vim.api.nvim_win_is_valid(self.parent_winnr) then
     vim.api.nvim_set_current_win(self.parent_winnr)
   end
+
   vim.api.nvim_del_augroup_by_name('Glance')
   self.list:close()
   self.preview:close()

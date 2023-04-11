@@ -33,12 +33,6 @@ local function create_handler(method)
           cancel_all_requests()
           result = vim.tbl_islist(result) and result or { result }
 
-          if method.normalize then
-            for _, value in ipairs(result) do
-              value.uri = value.targetUri or value.uri
-              value.range = value.targetSelectionRange or value.range
-            end
-          end
           return cb(result, ctx)
         end
 
@@ -54,7 +48,6 @@ M.methods = {
   type_definitions = {
     label = 'type definitions',
     lsp_method = 'textDocument/typeDefinition',
-    normalize = true,
   },
   implementations = {
     label = 'implementations',
@@ -63,7 +56,6 @@ M.methods = {
   definitions = {
     label = 'definitions',
     lsp_method = 'textDocument/definition',
-    normalize = true,
   },
   references = {
     label = 'references',
