@@ -7,6 +7,7 @@ local glance = {}
 Glance.__index = Glance
 local initialized = false
 
+---@param opts? GlanceOpts
 function Glance.setup(opts)
   if initialized then
     return
@@ -180,6 +181,11 @@ local function create(
   })
 end
 
+---@class GlanceOpenOpts
+---@field method GlanceMethod
+---@field hooks? GlanceHooksOpts
+
+---@param opts GlanceOpenOpts
 local function open(opts)
   local lsp = require('glance.lsp')
   local parent_bufnr = vim.api.nvim_get_current_buf()
@@ -221,7 +227,7 @@ local function open(opts)
         vim.lsp.util.jump_to_location(result, client.offset_encoding)
       end
 
-      local hooks = config.options.hooks
+      local hooks = opts.hooks or config.options.hooks
 
       if hooks and type(hooks.before_open) == 'function' then
         hooks.before_open(results, _open, _jump, opts.method)
@@ -232,6 +238,7 @@ local function open(opts)
   end)
 end
 
+---@class GlanceActions
 Glance.actions = {
   close = function()
     glance:close()
@@ -301,7 +308,9 @@ Glance.actions = {
   jump_split = function()
     glance:jump({ cmd = 'split' })
   end,
-  open = function(method)
+  ---@param method GlanceMethod
+  ---@param opts? { hooks: GlanceHooks }
+  open = function(method, opts)
     vim.validate({
       method = utils.valid_enum(
         method,
@@ -312,7 +321,7 @@ Glance.actions = {
     -- Manually call the setup in case user hasn't initialized the plugin
     -- It will only run once
     Glance.setup()
-    open({ method = method })
+    open({ method = method, hooks = opts and opts.hooks })
   end,
 }
 

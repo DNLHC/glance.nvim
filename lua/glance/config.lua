@@ -5,6 +5,55 @@ config.options = {}
 config.namespace = vim.api.nvim_create_namespace('Glance')
 config.hl_ns = 'Glance'
 
+---@class GlancePreviewWinOpts
+---@field enable boolean
+---@field top_char string
+---@field bottom_char string
+
+---@class GlanceListOpts
+---@field position ('"left"' | '"right"')
+---@field width number
+
+---@class GlanceThemeOpts
+---@field enable boolean
+---@field mode ('"brighten"' | '"darken"' | '"auto"')
+
+---@class GlanceMappingsOpts
+---@field list table<string, fun()>
+---@field preview table<string, fun()>
+
+---@class GlanceHooksOpts
+---@field before_open fun(results: table[], open: fun(locations: table[]), jump: fun(location: table), method: GlanceMethod)
+---@field before_close fun()
+---@field after_close fun()
+
+---@class GlanceFoldsOpts
+---@field fold_closed string
+---@field fold_open string
+---@field folded boolean
+
+---@class GlanceIndentLinesOpts
+---@field enable boolean
+---@field icon string
+
+---@class GlanceWinbarOpts
+---@field enable boolean
+
+---@class GlanceOpts
+---@field height integer
+---@field zindex integer
+---@field detached (fun(winid: integer): boolean) | boolean)
+---@field preview_win_opts GlancePreviewWinOpts
+---@field list GlanceListOpts
+---@field theme GlanceThemeOpts
+---@field mappings GlanceMappingsOpts
+---@field hooks GlanceHooksOpts
+---@field folds GlanceFoldsOpts
+---@field indent_lines GlanceIndentLinesOpts
+---@field winbar GlanceWinbarOpts
+
+---@param user_config GlanceOpts | nil
+---@param actions GlanceActions
 function config.setup(user_config, actions)
   local defaults = {
     height = 18,

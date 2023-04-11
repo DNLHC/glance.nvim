@@ -44,6 +44,12 @@ local function create_handler(method)
   end
 end
 
+---@alias GlanceMethod
+--- | '"type_definitions"'
+--- | '"implementations"'
+--- | '"definitions"'
+--- | '"references"'
+
 M.methods = {
   type_definitions = {
     label = 'type definitions',
