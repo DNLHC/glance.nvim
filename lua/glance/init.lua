@@ -314,6 +314,25 @@ Glance.actions = {
     Glance.setup()
     open({ method = method })
   end,
+  quickfix = function()
+    local qf_items = {}
+    for _, group in pairs(glance.list.groups) do
+      for _, item in ipairs(group.items) do
+        table.insert(qf_items, {
+          bufnr = item.bufnr,
+          filename = item.filename,
+          lnum = item.start_line + 1,
+          end_lnum = item.end_line + 1,
+          col = item.start_col + 1,
+          end_col = item.end_col + 1,
+          text = item.full_text,
+        })
+      end
+    end
+    vim.fn.setqflist(qf_items, 'r')
+    Glance.actions.close()
+    vim.cmd.copen()
+  end,
   toggle_fold = function()
     glance:toggle_fold()
   end,

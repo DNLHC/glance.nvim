@@ -100,6 +100,7 @@ glance.setup({
       ['q'] = actions.close,
       ['Q'] = actions.close,
       ['<Esc>'] = actions.close,
+      ["<C-q>"] = actions.quickfix,
       -- ['<Esc>'] = false -- disable a mapping
     },
     preview = {
