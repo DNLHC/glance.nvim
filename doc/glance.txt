@@ -1,17 +1,17 @@
-*glance.txt*           For NVIM v0.8.0           Last change: 2023 February 15
+*glance.txt*             For NVIM v0.8.0            Last change: 2023 April 13
 
 ==============================================================================
 Table of Contents                                   *glance-table-of-contents*
 
 1. Glance                                                      |glance-glance|
-  - Features                                                 |glance-features|
-  - Requirements                                         |glance-requirements|
-  - Install                                                   |glance-install|
-  - Configuration                                       |glance-configuration|
-  - Hooks                                                       |glance-hooks|
-  - Usage                                                       |glance-usage|
-  - Highlights                                             |glance-highlights|
-  - Alternatives                                         |glance-alternatives|
+  - Features                                          |glance-glance-features|
+  - Requirements                                  |glance-glance-requirements|
+  - Install                                            |glance-glance-install|
+  - Configuration                                |glance-glance-configuration|
+  - Hooks                                                |glance-glance-hooks|
+  - Usage                                                |glance-glance-usage|
+  - Highlights                                      |glance-glance-highlights|
+  - Alternatives                                  |glance-glance-alternatives|
 
 ==============================================================================
 1. Glance                                                      *glance-glance*
@@ -19,12 +19,8 @@ Table of Contents                                   *glance-table-of-contents*
 A pretty window for previewing, navigating and editing your LSP locations in
 one place, inspired by vscode’s peek preview.
 
-<div class="figure">
-<img src="https://i.imgur.com/86K5ljv.png" title="fig:"/>
-<p class="caption">Glance references screenshot</p>
-</div>
 
-FEATURES                                                     *glance-features*
+FEATURES                                              *glance-glance-features*
 
 
 - Supports following LSP methods: `definitions`, `type definitions`, `references`, `implementations`
@@ -33,27 +29,28 @@ FEATURES                                                     *glance-features*
 - Intuitive UI
 
 
-REQUIREMENTS                                             *glance-requirements*
+REQUIREMENTS                                      *glance-glance-requirements*
 
 
 - Properly configured LSP client
 - Neovim >= 0.7.0
 
 
-INSTALL                                                       *glance-install*
+INSTALL                                                *glance-glance-install*
 
 Install the plugin with your preferred plugin manager.
 
+
 VIM PLUG ~
 
->
+>vim
     Plug 'dnlhc/glance.nvim'
 <
 
 
 PACKER ~
 
->
+>lua
     use({
       "dnlhc/glance.nvim",
       config = function()
@@ -65,11 +62,11 @@ PACKER ~
 <
 
 
-CONFIGURATION                                           *glance-configuration*
+CONFIGURATION                                    *glance-glance-configuration*
 
 The following is the default configuration:
 
->
+>lua
     -- Lua configuration
     local glance = require('glance')
     local actions = glance.actions
@@ -126,6 +123,7 @@ The following is the default configuration:
           ['q'] = actions.close,
           ['Q'] = actions.close,
           ['<Esc>'] = actions.close,
+          ["<C-q>"] = actions.quickfix,
           -- ['<Esc>'] = false -- disable a mapping
         },
         preview = {
@@ -152,7 +150,8 @@ The following is the default configuration:
 <
 
 
-HOOKS                                                           *glance-hooks*
+HOOKS                                                    *glance-glance-hooks*
+
 
 BEFORE_OPEN ~
 
@@ -167,7 +166,7 @@ Examples:
 
 Don’t open glance when there is only one result instead jump to that location
 
->
+>lua
     hooks = {
       before_open = function(results, open, jump, method)
         if #results == 1 then
@@ -179,11 +178,10 @@ Don’t open glance when there is only one result instead jump to that location
     }
 <
 
-
 Don’t open glance when there is only one result and it is located in the
 current buffer, open otherwise
 
->
+>lua
     hooks = {
       before_open = function(results, open, jump, method)
         local uri = vim.uri_from_bufnr(0)
@@ -207,11 +205,14 @@ BEFORE_CLOSE ~
 
 Triggered right before the window is closed
 
+
 AFTER_CLOSE ~
 
 Triggered after the window is closed
 
-USAGE                                                           *glance-usage*
+
+USAGE                                                    *glance-glance-usage*
+
 
 COMMANDS ~
 
@@ -224,7 +225,7 @@ COMMANDS ~
 
 EXAMPLE KEYBINDINGS ~
 
->
+>vim
     " VimScript
     nnoremap gR <CMD>Glance references<CR>
     nnoremap gD <CMD>Glance definitions<CR>
@@ -232,8 +233,7 @@ EXAMPLE KEYBINDINGS ~
     nnoremap gM <CMD>Glance implementations<CR>
 <
 
-
->
+>lua
     -- Lua
     vim.keymap.set('n', 'gD', '<CMD>Glance definitions<CR>')
     vim.keymap.set('n', 'gR', '<CMD>Glance references<CR>')
@@ -242,7 +242,7 @@ EXAMPLE KEYBINDINGS ~
 <
 
 
-HIGHLIGHTS                                                 *glance-highlights*
+HIGHLIGHTS                                          *glance-glance-highlights*
 
 The following list shows all the highlight groups defined for glance.nvim
 
@@ -270,7 +270,7 @@ The following list shows all the highlight groups defined for glance.nvim
 - `GlanceBorderTop`
 
 
-ALTERNATIVES                                             *glance-alternatives*
+ALTERNATIVES                                      *glance-glance-alternatives*
 
 
 - nvim-telescope/telescope.nvim <https://github.com/nvim-telescope/telescope.nvim>
@@ -278,6 +278,10 @@ ALTERNATIVES                                             *glance-alternatives*
 - folke/trouble.nvim <https://github.com/folke/trouble.nvim>
 - rmagatti/goto-preview <https://github.com/rmagatti/goto-preview>
 
+==============================================================================
+2. Links                                                        *glance-links*
+
+1. *Glance references screenshot*: https://i.imgur.com/86K5ljv.png
 
 Generated by panvimdoc <https://github.com/kdheepak/panvimdoc>
 
