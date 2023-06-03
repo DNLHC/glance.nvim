@@ -62,7 +62,7 @@ local function set_hl(group, value, opts)
   vim.api.nvim_set_hl(0, group, color)
 end
 
-local function setup_theme(mode)
+local function setup_highlights(mode)
   local bg_normal_value, fg_normal_value = get_hl_value('Normal')
   local bg_normal = Color.new(bg_normal_value)
   local fg_normal = Color.new(fg_normal_value)
@@ -125,26 +125,40 @@ local function setup_theme(mode)
   end
 end
 
-function M.setup()
+local function setup_theme()
   local theme_opts = config.options.theme
-  set_hl('None', { fg = 'NONE', bg = 'NONE', default = false })
+  local mode = theme_opts.mode
 
-  if theme_opts.enable then
-    local mode = theme_opts.mode
-    if mode == 'auto' then
-      mode = is_bright_background() and 'darken' or 'brighten'
-    end
-    pcall(setup_theme, mode)
+  if mode == 'auto' then
+    mode = is_bright_background() and 'darken' or 'brighten'
   end
 
-  for group, link in pairs(links) do
-    set_hl(group, { link = link })
+  if theme_opts.enable then
+    pcall(setup_highlights, mode)
   end
 
   for group, color in pairs(extract_colors) do
     local fg = get_hl_value(color.foreground, 'fg')
     local bg = get_hl_value(color.background, 'bg')
     set_hl(group, { fg = fg, bg = bg })
+  end
+end
+
+function M.setup()
+  set_hl('None', { fg = 'NONE', bg = 'NONE', default = false })
+  setup_theme()
+
+  local augroup =
+    vim.api.nvim_create_augroup('GlanceColorScheme', { clear = true })
+  vim.api.nvim_create_autocmd('ColorScheme', {
+    group = augroup,
+    callback = function()
+      setup_theme()
+    end,
+  })
+
+  for group, link in pairs(links) do
+    set_hl(group, { link = link })
   end
 end
 
