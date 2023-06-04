@@ -465,14 +465,17 @@ end
 
 function Glance:toggle_fold(expand)
   local item = self.list:get_current_item()
-  if not item or item.is_unreachable then
+
+  if not item or self.list:is_flat() then
     return
   end
+
   if expand == nil then
     return self.list:toggle_fold(item)
   elseif expand then
     return self.list:open_fold(item)
   end
+
   return self.list:close_fold(item)
 end
 
@@ -484,9 +487,9 @@ function Glance:update_preview(item)
 end
 
 function Glance:close()
-  local hooks = config.options.hooks
+  local hooks = config.options.hooks or {}
 
-  if hooks and type(hooks.before_close) == 'function' then
+  if type(hooks.before_close) == 'function' then
     hooks.before_close()
   end
 
@@ -498,7 +501,7 @@ function Glance:close()
   self.list:close()
   self.preview:close()
 
-  if hooks and type(hooks.after_close) == 'function' then
+  if type(hooks.after_close) == 'function' then
     vim.schedule(hooks.after_close)
   end
 end

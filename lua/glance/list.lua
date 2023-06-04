@@ -310,7 +310,7 @@ local function process_locations(locations, position_params, offset_encoding)
     -- get all the lines for this uri
     local lines = get_lines(bufnr, uri, uri_rows)
 
-    for _, position in ipairs(rows) do
+    for index, position in ipairs(rows) do
       local preview_line
       local is_unreachable = false
       local start = position.start
@@ -344,6 +344,7 @@ local function process_locations(locations, position_params, offset_encoding)
       local location = {
         filename = filename,
         bufnr = bufnr,
+        index = index,
         uri = uri,
         preview_line = preview_line,
         is_unreachable = is_unreachable,
@@ -587,19 +588,44 @@ function List:get_active_group(opts)
   return self.groups[current_location.filename]
 end
 
+function List:is_flat()
+  return vim.tbl_count(self.groups) == 1
+end
+
 function List:toggle_fold(item)
-  folds.toggle(item.filename)
-  self:update(self.groups)
+  if folds.is_folded(item.filename) then
+    self:open_fold(item)
+  else
+    self:close_fold(item)
+  end
 end
 
 function List:open_fold(item)
+  if not folds.is_folded(item.filename) then
+    return
+  end
+
   folds.open(item.filename)
   self:update(self.groups)
 end
 
 function List:close_fold(item)
+  if folds.is_folded(item.filename) then
+    return
+  end
+
+  local current_line = self:get_line()
   folds.close(item.filename)
   self:update(self.groups)
+
+  if item.is_group then
+    return
+  end
+
+  vim.api.nvim_win_set_cursor(self.winnr, {
+    math.max(current_line - item.index, 1),
+    self:get_col(),
+  })
 end
 
 return List
