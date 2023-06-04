@@ -1,4 +1,4 @@
-*glance.txt*             For NVIM v0.8.0            Last change: 2023 April 13
+*glance.txt*             For NVIM v0.8.0             Last change: 2023 June 04
 
 ==============================================================================
 Table of Contents                                   *glance-table-of-contents*
@@ -22,7 +22,6 @@ one place, inspired by vscode’s peek preview.
 
 FEATURES                                              *glance-glance-features*
 
-
 - Supports following LSP methods: `definitions`, `type definitions`, `references`, `implementations`
 - Automatically sets up highlights based on your colorscheme colors
 - Allows editing previewed buffer inside the floating window
@@ -30,7 +29,6 @@ FEATURES                                              *glance-glance-features*
 
 
 REQUIREMENTS                                      *glance-glance-requirements*
-
 
 - Properly configured LSP client
 - Neovim >= 0.7.0
@@ -119,11 +117,13 @@ The following is the default configuration:
           ['t'] = actions.jump_tab,
           ['<CR>'] = actions.jump,
           ['o'] = actions.jump,
+          ['l'] = actions.open_fold,
+          ['h'] = actions.close_fold,
           ['<leader>l'] = actions.enter_win('preview'), -- Focus preview window
           ['q'] = actions.close,
           ['Q'] = actions.close,
           ['<Esc>'] = actions.close,
-          ["<C-q>"] = actions.quickfix,
+          ['<C-q>'] = actions.quickfix,
           -- ['<Esc>'] = false -- disable a mapping
         },
         preview = {
@@ -216,7 +216,6 @@ USAGE                                                    *glance-glance-usage*
 
 COMMANDS ~
 
-
 - `:Glance references` show references of the word under the cursor from the LSP server
 - `:Glance definitions` show definitions of the word under the cursor from the LSP server
 - `:Glance type_definitions` show type definitions of the word under the cursor from the LSP server
@@ -246,7 +245,6 @@ HIGHLIGHTS                                          *glance-glance-highlights*
 
 The following list shows all the highlight groups defined for glance.nvim
 
-
 - `GlancePreviewNormal`
 - `GlancePreviewMatch`
 - `GlancePreviewCursorLine`
@@ -271,7 +269,6 @@ The following list shows all the highlight groups defined for glance.nvim
 
 
 ALTERNATIVES                                      *glance-glance-alternatives*
-
 
 - nvim-telescope/telescope.nvim <https://github.com/nvim-telescope/telescope.nvim>
 - glepnir/lspsaga.nvim <https://github.com/glepnir/lspsaga.nvim>
