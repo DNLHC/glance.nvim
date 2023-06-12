@@ -1,4 +1,4 @@
-*glance.txt*             For NVIM v0.8.0             Last change: 2023 June 04
+*glance.txt*             For NVIM v0.8.0             Last change: 2023 June 12
 
 ==============================================================================
 Table of Contents                                   *glance-table-of-contents*
@@ -135,8 +135,8 @@ The following is the default configuration:
       },
       hooks = {},
       folds = {
-        fold_closed = '',
-        fold_open = '',
+        fold_closed = '',
+        fold_open = '',
         folded = true, -- Automatically fold list on startup
       },
       indent_lines = {
