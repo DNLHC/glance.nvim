@@ -114,8 +114,8 @@ glance.setup({
   },
   hooks = {},
   folds = {
-    fold_closed = '',
-    fold_open = '',
+    fold_closed = '',
+    fold_open = '',
     folded = true, -- Automatically fold list on startup
   },
   indent_lines = {

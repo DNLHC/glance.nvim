@@ -111,8 +111,8 @@ function config.setup(user_config, actions)
     },
     hooks = {},
     folds = {
-      fold_closed = '',
-      fold_open = '',
+      fold_closed = '',
+      fold_open = '',
       folded = true,
     },
     indent_lines = {
