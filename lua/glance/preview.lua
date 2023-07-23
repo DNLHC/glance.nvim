@@ -174,6 +174,7 @@ function Preview:close()
 
   for _, bufnr in ipairs(touched_buffers) do
     if vim.api.nvim_buf_is_valid(bufnr) and vim.fn.buflisted(bufnr) ~= 1 then
+      pcall(vim.lsp.inlay_hint, bufnr, false)
       vim.api.nvim_buf_delete(bufnr, { force = true })
     else
       clear_hl(bufnr)
