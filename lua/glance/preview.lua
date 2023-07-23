@@ -174,7 +174,7 @@ function Preview:close()
 
   for _, bufnr in ipairs(touched_buffers) do
     if vim.api.nvim_buf_is_valid(bufnr) and vim.fn.buflisted(bufnr) ~= 1 then
-      if vim.fn.has('nvim-0.10') == 1 then
+      if vim.fn.has('nvim-0.9.2') == 1 then
         vim.lsp.inlay_hint(bufnr, false)
       end
       vim.api.nvim_buf_delete(bufnr, { force = true })
