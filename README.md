@@ -102,7 +102,7 @@ glance.setup({
       ['q'] = actions.close,
       ['Q'] = actions.close,
       ['<Esc>'] = actions.close,
-      ['<C-q>'] = actions.quickfix,
+      ['<C-q>'] = actions.quickfix, -- `actions.quickfix("no-open")` to not open the quickfix window afterward
       -- ['<Esc>'] = false -- disable a mapping
     },
     preview = {
