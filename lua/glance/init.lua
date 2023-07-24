@@ -323,7 +323,8 @@ Glance.actions = {
     Glance.setup()
     open({ method = method, hooks = opts and opts.hooks })
   end,
-  quickfix = function()
+    ---@param noOpen: any do not open quickfix window
+  quickfix = function(noOpen)
     local qf_items = {}
     for _, group in pairs(glance.list.groups) do
       for _, item in ipairs(group.items) do
@@ -340,7 +341,9 @@ Glance.actions = {
     end
     vim.fn.setqflist(qf_items, 'r')
     Glance.actions.close()
-    vim.cmd.copen()
+    if not noOpen then 
+      vim.cmd.copen()
+    end
   end,
   toggle_fold = function()
     glance:toggle_fold()
