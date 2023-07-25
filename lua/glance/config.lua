@@ -19,8 +19,8 @@ config.hl_ns = 'Glance'
 ---@field mode ('"brighten"' | '"darken"' | '"auto"')
 
 ---@class GlanceMappingsOpts
----@field list table<string, fun()>
----@field preview table<string, fun()>
+---@field list table<string, fun()|false>
+---@field preview table<string, fun()|false>
 
 ---@class GlanceHooksOpts
 ---@field before_open fun(results: table[], open: fun(locations: table[]), jump: fun(location: table), method: GlanceMethod)
