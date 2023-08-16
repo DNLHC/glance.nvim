@@ -1,6 +1,7 @@
 local config = require('glance.config')
 local highlights = require('glance.highlights')
 local utils = require('glance.utils')
+local lsp = require('glance.lsp')
 
 local Glance = {}
 local glance = {}
@@ -15,6 +16,7 @@ function Glance.setup(opts)
 
   config.setup(opts, Glance.actions)
   highlights.setup()
+  lsp.setup()
 
   initialized = true
 end
@@ -187,7 +189,6 @@ end
 
 ---@param opts GlanceOpenOpts
 local function open(opts)
-  local lsp = require('glance.lsp')
   local parent_bufnr = vim.api.nvim_get_current_buf()
   local parent_winnr = vim.api.nvim_get_current_win()
   local params = vim.lsp.util.make_position_params()
@@ -311,6 +312,13 @@ Glance.actions = {
   ---@param method GlanceMethod
   ---@param opts? { hooks: GlanceHooks }
   open = function(method, opts)
+    vim.validate({
+      method = utils.valid_enum(
+        method,
+        vim.tbl_keys(require('glance.lsp').methods),
+        false
+      ),
+    })
     -- Manually call the setup in case user hasn't initialized the plugin
     -- It will only run once
     Glance.setup()
@@ -503,6 +511,23 @@ function Glance:destroy()
   self.list:destroy()
   self.preview:destroy()
   glance = {}
+end
+
+Glance.register_method = function(method)
+  vim.validate({
+    name = { method.name, 'string' },
+    label = { method.label, 'string' },
+    method = { method.method, 'string' },
+  })
+
+  if lsp.methods[method.name] then
+    return utils.error(("method '%s' already registered"):format(method.name))
+  end
+
+  lsp.methods[method.name] = {
+    label = method.label,
+    lsp_method = method.method,
+  }
 end
 
 Glance.open = Glance.actions.open

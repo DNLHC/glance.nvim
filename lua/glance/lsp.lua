@@ -69,8 +69,10 @@ M.methods = {
   },
 }
 
-for key, method in pairs(M.methods) do
-  M.methods[key].handler = create_handler(method)
+function M.setup()
+  for key, method in pairs(M.methods) do
+    M.methods[key].handler = create_handler(method)
+  end
 end
 
 function M.request(name, params, bufnr, cb)
