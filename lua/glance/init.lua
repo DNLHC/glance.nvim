@@ -311,13 +311,6 @@ Glance.actions = {
   ---@param method GlanceMethod
   ---@param opts? { hooks: GlanceHooks }
   open = function(method, opts)
-    vim.validate({
-      method = utils.valid_enum(
-        method,
-        vim.tbl_keys(require('glance.lsp').methods),
-        false
-      ),
-    })
     -- Manually call the setup in case user hasn't initialized the plugin
     -- It will only run once
     Glance.setup()
