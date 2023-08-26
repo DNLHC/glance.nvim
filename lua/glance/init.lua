@@ -527,6 +527,7 @@ Glance.register_method = function(method)
   lsp.methods[method.name] = {
     label = method.label,
     lsp_method = method.method,
+    non_standard = true,
   }
 end
 
