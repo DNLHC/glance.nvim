@@ -17,6 +17,7 @@ config.hl_ns = 'Glance'
 ---@class GlanceThemeOpts
 ---@field enable boolean
 ---@field mode ('"brighten"' | '"darken"' | '"auto"')
+---@field multiplier number
 
 ---@class GlanceMappingsOpts
 ---@field list table<string, fun()|false>
@@ -78,6 +79,7 @@ function config.setup(user_config, actions)
     theme = {
       enable = true,
       mode = 'auto',
+      multiplier = 1,
     },
     mappings = {
       list = {

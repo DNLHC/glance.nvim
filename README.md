@@ -80,6 +80,7 @@ glance.setup({
   theme = { -- This feature might not work properly in nvim-0.7.2
     enable = true, -- Will generate colors for the plugin based on your current colorscheme
     mode = 'auto', -- 'brighten'|'darken'|'auto', 'auto' will set mode based on the brightness of your colorscheme
+    multiplier = 1, -- Darkens / brightens the generated colors by the given multiplier
   },
   mappings = {
     list = {

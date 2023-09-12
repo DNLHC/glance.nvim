@@ -1,4 +1,5 @@
 local utils = require('glance.utils')
+local config = require('glance.config')
 Color = {}
 Color.__index = Color
 
@@ -121,7 +122,7 @@ end
 
 function Color:darken(amount)
   local lab = self.lab
-  local l = lab[1] - (LAB.Kn * amount)
+  local l = lab[1] - (LAB.Kn * amount * config.multiplier)
   local r, g, b = lab2rgb(l, lab[2], lab[3])
   return Color.rgb2hex(r, g, b)
 end
