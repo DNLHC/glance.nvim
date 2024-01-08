@@ -446,7 +446,11 @@ function Glance:jump(opts)
   glance.push_tagstack()
 
   if opts.cmd then
-    vim.cmd(opts.cmd)
+    if type(opts.cmd) == 'function' then
+      opts.cmd(current_item)
+    else
+      vim.cmd(opts.cmd)
+    end
   end
 
   if vim.fn.buflisted(current_item.bufnr) == 1 then
