@@ -297,8 +297,8 @@ Glance.actions = {
       end)
     end
   end,
-  jump = function()
-    glance:jump()
+  jump = function(opts)
+    glance:jump(opts)
   end,
   jump_vsplit = function()
     glance:jump({ cmd = 'vsplit' })
