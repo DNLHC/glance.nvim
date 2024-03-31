@@ -1,4 +1,4 @@
-*glance.txt*             For NVIM v0.8.0             Last change: 2023 June 12
+*glance.txt*             For NVIM v0.8.0            Last change: 2024 March 31
 
 ==============================================================================
 Table of Contents                                   *glance-table-of-contents*
@@ -12,6 +12,7 @@ Table of Contents                                   *glance-table-of-contents*
   - Usage                                                |glance-glance-usage|
   - Highlights                                      |glance-glance-highlights|
   - Alternatives                                  |glance-glance-alternatives|
+2. Links                                                        |glance-links|
 
 ==============================================================================
 1. Glance                                                      *glance-glance*
@@ -146,6 +147,7 @@ The following is the default configuration:
       winbar = {
         enable = true, -- Available strating from nvim-0.8+
       },
+      use_trouble_qf = false -- Quickfix action will open trouble.nvim instead of built-in quickfix list window
     })
 <
 
