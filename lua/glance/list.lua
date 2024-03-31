@@ -371,12 +371,14 @@ local function get_lsp_method_label(method_name)
   return utils.capitalize(lsp.methods[method_name].label)
 end
 
+_G.Total_Count = 0
 function List:setup(opts)
   self.groups =
     process_locations(opts.results, opts.position_params, opts.offset_encoding)
   local group, location =
     find_starting_group_and_location(self.groups, opts.position_params)
 
+  _G.Total_Count = #opts.results
   folds.reset()
   folds.open(group.filename)
 
