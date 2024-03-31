@@ -125,6 +125,7 @@ glance.setup({
   winbar = {
     enable = true, -- Available strating from nvim-0.8+
   },
+  use_trouble_qf = false -- Quickfix action will open trouble.nvim instead of built-in quickfix list window
 })
 ```
 

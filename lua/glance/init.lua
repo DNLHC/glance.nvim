@@ -341,7 +341,11 @@ Glance.actions = {
     end
     vim.fn.setqflist(qf_items, 'r')
     Glance.actions.close()
-    vim.cmd.copen()
+    if config.options.use_trouble_qf and pcall(require, 'trouble') then
+      require('trouble').open('quickfix')
+    else
+      vim.cmd.copen()
+    end
   end,
   toggle_fold = function()
     glance:toggle_fold()
