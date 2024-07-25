@@ -147,6 +147,30 @@ local function create(
 
   local augroup = vim.api.nvim_create_augroup('Glance', { clear = true })
 
+  -- cleanup autocommand which ensures if the user navigates away from Glance,
+  -- by either jumping out of the preview or list, or by changing the buffer
+  -- in the preview or list windows, we gracefully close.
+  Glance.cleanup = vim.api.nvim_create_autocmd({ 'WinEnter', 'BufEnter' }, {
+    group = augroup,
+    callback = function()
+      local cur_win = vim.api.nvim_get_current_win()
+      local cur_buf = vim.api.nvim_get_current_buf()
+
+      -- we allow the preview to change buffers, this allows nested glance
+      -- calls
+      local left_preview = cur_win ~= glance.preview.winnr
+      local left_list = (
+        cur_buf ~= glance.list.bufnr or cur_win ~= glance.list.winnr
+      )
+
+      if left_preview and left_list then
+        vim.api.nvim_del_autocmd(Glance.cleanup)
+        Glance.cleanup = 0
+        Glance.actions.close()
+      end
+    end,
+  })
+
   vim.api.nvim_create_autocmd('CursorMoved', {
     group = augroup,
     buffer = glance.list.bufnr,
@@ -500,6 +524,10 @@ function Glance:close()
 
   if type(hooks.before_close) == 'function' then
     hooks.before_close()
+  end
+
+  if self.cleanup > 0 then
+    vim.api.nvim_del_autocmd(self.cleanup)
   end
 
   if vim.api.nvim_win_is_valid(self.parent_winnr) then
