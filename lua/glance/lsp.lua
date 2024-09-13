@@ -32,7 +32,12 @@ local function create_handler(method)
           client_request_ids[ctx.client_id] = nil
         else
           cancel_all_requests()
-          result = vim.tbl_islist(result) and result or { result }
+          result = (
+            vim.fn.has('nvim-0.10.0') == 1 and vim.islist(result)
+            or vim.tbl_islist(result)
+          )
+              and result
+            or { result }
 
           return cb(result, ctx)
         end
