@@ -569,4 +569,6 @@ end
 
 Glance.open = Glance.actions.open
 
+Glance.is_open = is_open
+
 return Glance
