@@ -1,4 +1,4 @@
-*glance.txt*             For NVIM v0.8.0            Last change: 2024 March 31
+*glance.txt*           For NVIM v0.8.0           Last change: 2024 November 25
 
 ==============================================================================
 Table of Contents                                   *glance-table-of-contents*
@@ -222,6 +222,7 @@ COMMANDS ~
 - `:Glance definitions` show definitions of the word under the cursor from the LSP server
 - `:Glance type_definitions` show type definitions of the word under the cursor from the LSP server
 - `:Glance implementations` show implementations of the word under the cursor from the LSP server
+- `:Glance resume` resume last closed session
 
 
 EXAMPLE KEYBINDINGS ~
