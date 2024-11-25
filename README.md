@@ -190,6 +190,7 @@ Triggered after the window is closed
 - `:Glance definitions` show definitions of the word under the cursor from the LSP server
 - `:Glance type_definitions` show type definitions of the word under the cursor from the LSP server
 - `:Glance implementations` show implementations of the word under the cursor from the LSP server
+- `:Glance resume` resume last closed session
 
 ### Example keybindings
 

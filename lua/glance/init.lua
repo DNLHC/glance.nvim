@@ -7,6 +7,7 @@ local Glance = {}
 local glance = {}
 Glance.__index = Glance
 local initialized = false
+local last_session = nil
 
 ---@param opts? GlanceOpts
 function Glance.setup(opts)
@@ -336,12 +337,10 @@ Glance.actions = {
   ---@param method GlanceMethod
   ---@param opts? { hooks: GlanceHooks }
   open = function(method, opts)
+    local commands = vim.tbl_keys(require('glance.lsp').methods)
+    table.insert(commands, 'resume')
     vim.validate({
-      method = utils.valid_enum(
-        method,
-        vim.tbl_keys(require('glance.lsp').methods),
-        false
-      ),
+      method = utils.valid_enum(method, commands, false),
     })
     -- Manually call the setup in case user hasn't initialized the plugin
     -- It will only run once
@@ -380,6 +379,23 @@ Glance.actions = {
   close_fold = function()
     glance:toggle_fold(false)
   end,
+  resume = function()
+    if not last_session then
+      return utils.info('No previous Glance session to resume')
+    end
+
+    -- Create new Glance instance with stored state
+    create(
+      last_session.results,
+      vim.api.nvim_get_current_buf(),
+      vim.api.nvim_get_current_win(),
+      vim.lsp.util.make_position_params(),
+      last_session.method,
+      last_session.offset_encoding
+    )
+
+    -- TODO: Restore cursor position
+  end,
 }
 
 function Glance:create(opts)
@@ -402,6 +418,14 @@ function Glance:create(opts)
     win_opts = preview_win_opts,
     preview_bufnr = list:get_current_item().bufnr,
   })
+
+  -- Used for restoring the previous session
+  last_session = {
+    results = opts.results,
+    position_params = opts.params,
+    method = opts.method,
+    offset_encoding = opts.offset_encoding,
+  }
 
   local scope = {
     list = list,
@@ -535,6 +559,7 @@ function Glance:close()
   end
 
   vim.api.nvim_del_augroup_by_name('Glance')
+
   self.list:close()
   self.preview:close()
 
