@@ -121,6 +121,14 @@ function utils.get_line_byte_from_position(line, position, offset_encoding)
   -- character
   if col > 0 then
     local ok, result
+    ok, result = pcall(vim.str_byteindex, line, offset_encoding, col)
+    if ok then
+      return result
+    end
+    ok, result = pcall(vim.str_byteindex, line, col, offset_encoding == 'utf-16')
+    if ok then
+      return result
+    end
     ok, result =
       pcall(vim.lsp.util._str_byteindex_enc, line, col, offset_encoding)
     if ok then
