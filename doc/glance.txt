@@ -1,4 +1,4 @@
-*glance.txt*           For NVIM v0.8.0           Last change: 2024 November 25
+*glance.txt*           For NVIM v0.8.0           Last change: 2024 December 22
 
 ==============================================================================
 Table of Contents                                   *glance-table-of-contents*
@@ -74,8 +74,12 @@ The following is the default configuration:
       height = 18, -- Height of the window
       zindex = 45,
     
-      -- By default glance will open preview "embedded" within your active window
-      -- when `detached` is enabled, glance will render above all existing windows
+      -- Preserve the parent window context by appending virtual lines underneath the preview window.
+      -- requires Neovim >= 0.10.0 uses experimental nvim api that may change in the future.
+      preserve_win_context = true,
+    
+      -- By default glance will open preview window "embedded" within your active window.
+      -- When `detached` is enabled glance preview will be rendered above all existing windows
       -- and won't be restiricted by the width of your active window
       detached = true,
     
