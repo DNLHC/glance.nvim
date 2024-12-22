@@ -51,6 +51,7 @@ config.hl_ns = 'Glance'
 ---@field folds GlanceFoldsOpts
 ---@field indent_lines GlanceIndentLinesOpts
 ---@field winbar GlanceWinbarOpts
+---@field preserve_win_context boolean
 
 ---@param user_config GlanceOpts | nil
 ---@param actions GlanceActions
@@ -58,6 +59,7 @@ function config.setup(user_config, actions)
   local defaults = {
     height = 18,
     zindex = 45,
+    preserve_win_context = true,
     detached = function(winid)
       return vim.api.nvim_win_get_width(winid) < 100
     end,
@@ -132,6 +134,7 @@ function config.setup(user_config, actions)
 
   vim.validate({
     height = { opts.height, 'n', false },
+    preserve_win_context = { opts.preserve_win_context, 'b', false },
     list = { opts.list, 't', false },
     position = utils.valid_enum(opts.list.position, { 'left', 'right' }, false),
     width = { opts.list.width, 'n', false },
@@ -142,6 +145,10 @@ function config.setup(user_config, actions)
       false
     ),
   })
+
+  if opts.preserve_win_context and vim.fn.has('nvim-0.10.0') == 0 then
+    config.options.preserve_win_context = false
+  end
 
   -- Filter disabled mappings
   for _, mappings in pairs(opts.mappings) do

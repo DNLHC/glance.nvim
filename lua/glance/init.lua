@@ -8,6 +8,7 @@ local glance = {}
 Glance.__index = Glance
 local initialized = false
 local last_session = nil
+local layout_ns = vim.api.nvim_create_namespace('GlanceLayout')
 
 ---@param opts? GlanceOpts
 function Glance.setup(opts)
@@ -51,8 +52,13 @@ local function is_open()
   return list_is_valid and preview_is_valid
 end
 
-local function get_preview_win_height(winnr)
+local function get_preview_content_height(winnr)
   return math.min(vim.fn.winheight(winnr), config.options.height)
+end
+
+local function get_preview_layout_height(winnr)
+  local border_height = config.options.border.enable and 2 or 0
+  return get_preview_content_height(winnr) + border_height
 end
 
 local function is_detached(winnr)
@@ -85,7 +91,7 @@ local function get_win_opts(winnr, line)
   local list_width =
     utils.round(win_width * math.min(0.5, math.max(0.1, opts.list.width)))
   local preview_width = win_width - list_width
-  local height = get_preview_win_height(winnr)
+  local height = get_preview_content_height(winnr)
   local list_pos = opts.list.position
   local row = line
 
@@ -127,6 +133,31 @@ local function get_win_opts(winnr, line)
   }, win_opts)
 
   return list_win_opts, preview_win_opts
+end
+
+-- Creates virtual lines in the parent window to reserve space for the float preview.
+-- Uses experimental neovim API that may change in the future `nvim__win_add_ns`
+-- to set window-local extmarks
+local function append_virtual_lines(winnr, start_row)
+  if not vim.api.nvim__win_add_ns then
+    return
+  end
+
+  local bufnr = vim.api.nvim_win_get_buf(winnr)
+  local height = get_preview_layout_height(winnr)
+
+  local virt_lines = {}
+  for _ = 1, height do
+    table.insert(virt_lines, { { '', 'NonText' } })
+  end
+
+  vim.api.nvim__win_add_ns(winnr, layout_ns)
+
+  vim.api.nvim_buf_set_extmark(bufnr, layout_ns, start_row, 0, {
+    virt_lines = virt_lines,
+    virt_lines_above = false,
+    scoped = true,
+  })
 end
 
 local function create(
@@ -403,6 +434,10 @@ function Glance:create(opts)
   local push_tagstack = utils.create_push_tagstack(opts.winnr)
   local list_win_opts, preview_win_opts = get_win_opts(opts.winnr, row)
 
+  if config.options.preserve_win_context then
+    append_virtual_lines(opts.winnr, opts.params.position.line)
+  end
+
   local list = require('glance.list').create({
     results = opts.results,
     parent_winnr = opts.winnr,
@@ -454,10 +489,7 @@ function Glance:scroll_into_view(winnr, position)
   local win_height = vim.fn.winheight(winnr)
   local row = vim.fn.winline()
   local bottom_offset = 2
-  local border_height = config.options.border.enable and 2 or 0
-  local preview_height = get_preview_win_height(winnr)
-    + border_height
-    + bottom_offset
+  local preview_height = get_preview_layout_height(winnr) + bottom_offset
 
   if preview_height >= win_height then
     return 0
@@ -569,6 +601,7 @@ function Glance:close()
 end
 
 function Glance:destroy()
+  vim.api.nvim_buf_clear_namespace(self.parent_bufnr, layout_ns, 0, -1)
   self.list:destroy()
   self.preview:destroy()
   glance = {}

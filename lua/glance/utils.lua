@@ -125,7 +125,8 @@ function utils.get_line_byte_from_position(line, position, offset_encoding)
     if ok then
       return result
     end
-    ok, result = pcall(vim.str_byteindex, line, col, offset_encoding == 'utf-16')
+    ok, result =
+      pcall(vim.str_byteindex, line, col, offset_encoding == 'utf-16')
     if ok then
       return result
     end
