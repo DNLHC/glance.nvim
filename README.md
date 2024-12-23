@@ -66,12 +66,14 @@ vim.keymap.set('n', 'gM', '<CMD>Glance implementations<CR>')
 
 <details>
 <summary><strong>Using Vimscript</strong></summary>
+
 ```vim
 nnoremap gR <CMD>Glance references<CR>
 nnoremap gD <CMD>Glance definitions<CR>
 nnoremap gY <CMD>Glance type_definitions<CR>
 nnoremap gM <CMD>Glance implementations<CR>
 ```
+
 </details>
 
 ## Configuration
