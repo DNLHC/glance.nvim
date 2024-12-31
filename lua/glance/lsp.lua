@@ -18,7 +18,7 @@ local function create_handler(method)
             vim.tbl_deep_extend('keep', _client_request_ids, {})
         end
 
-        -- Don't log a error when LSP method is non-standard
+        -- Don't log an error when LSP method is non-standard
         if err and not method.non_standard then
           utils.error(
             ('An error happened requesting %s: %s'):format(
@@ -81,9 +81,28 @@ function M.setup()
   end
 end
 
-function M.request(name, params, bufnr, cb)
+local function client_position_params(params)
+  local win = vim.api.nvim_get_current_win()
+
+  return function(client)
+    local ret = vim.lsp.util.make_position_params(win, client.offset_encoding)
+    return vim.tbl_extend('force', ret, params or {})
+  end
+end
+
+local function make_position_params(params)
+  if vim.fn.has('nvim-0.11') ~= 0 then
+    return client_position_params(params)
+  end
+
+  local ret = vim.lsp.util.make_position_params(0)
+  return vim.tbl_extend('force', ret, params or {})
+end
+
+function M.request(name, bufnr, cb)
   if M.methods[name] then
-    params.context = { includeDeclaration = true }
+    local params =
+      make_position_params({ context = { includeDeclaration = true } })
     M.methods[name].handler(bufnr, params, cb)
   else
     utils.error(("No such method '%s'"):format(name))

@@ -247,9 +247,8 @@ end
 local function open(opts)
   local parent_bufnr = vim.api.nvim_get_current_buf()
   local parent_winnr = vim.api.nvim_get_current_win()
-  local params = vim.lsp.util.make_position_params()
 
-  lsp.request(opts.method, params, parent_bufnr, function(results, ctx)
+  lsp.request(opts.method, parent_bufnr, function(results, ctx)
     if vim.tbl_isempty(results) then
       return utils.info(('No %s found'):format(lsp.methods[opts.method].label))
     end
@@ -259,7 +258,7 @@ local function open(opts)
     if is_open() then
       glance.list:setup({
         results = results,
-        position_params = params,
+        position_params = ctx.params,
         method = opts.method,
         offset_encoding = client.offset_encoding,
       })
@@ -273,7 +272,7 @@ local function open(opts)
           _results,
           parent_bufnr,
           parent_winnr,
-          params,
+          ctx.params,
           opts.method,
           client.offset_encoding
         )
@@ -415,12 +414,15 @@ Glance.actions = {
       return utils.info('No previous Glance session to resume')
     end
 
+    local win = vim.api.nvim_get_current_win()
+    local buf = vim.api.nvim_get_current_buf()
+
     -- Create new Glance instance with stored state
     create(
       last_session.results,
-      vim.api.nvim_get_current_buf(),
-      vim.api.nvim_get_current_win(),
-      vim.lsp.util.make_position_params(),
+      buf,
+      win,
+      vim.lsp.util.make_position_params(win, last_session.offset_encoding),
       last_session.method,
       last_session.offset_encoding
     )
