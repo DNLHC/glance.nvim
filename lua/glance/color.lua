@@ -119,6 +119,10 @@ local function rgb2lab(r, g, b)
   return l, a, b
 end
 
+function Color:modify(amount)
+  return amount > 0 and self:brighten(amount) or self:darken(math.abs(amount))
+end
+
 function Color:darken(amount)
   local lab = self.lab
   local l = lab[1] - (LAB.Kn * amount)
@@ -136,6 +140,8 @@ function Color.new(hex)
   end
   local self = { Color.hex2rgb(hex) }
   self.lab = { rgb2lab(unpack(self)) }
+  self.hex = hex
+
   return setmetatable(self, Color)
 end
 

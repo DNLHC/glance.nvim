@@ -32,13 +32,12 @@ local function get_hl_value(name, attr)
     return 'NONE'
   end
 
-  hl.foreground = hl.foreground and '#' .. bit.tohex(hl.foreground, 6)
-  hl.background = hl.background and '#' .. bit.tohex(hl.background, 6)
-
   if hl.reverse then
-    local normal_bg = get_hl_value('Normal', 'bg')
-    hl.background = hl.foreground
-    hl.foreground = normal_bg
+    hl.background = hl.foreground and '#' .. bit.tohex(hl.foreground, 6)
+    hl.foreground = get_hl_value('Normal', 'bg')
+  else
+    hl.foreground = hl.foreground and '#' .. bit.tohex(hl.foreground, 6)
+    hl.background = hl.background and '#' .. bit.tohex(hl.background, 6)
   end
 
   if attr then
@@ -62,66 +61,62 @@ local function set_hl(group, value, opts)
   vim.api.nvim_set_hl(0, group, color)
 end
 
+local function create_color(color, amount)
+  if not color or color == 'NONE' then
+    return 'NONE'
+  end
+  return Color.new(color):modify(amount)
+end
+
 local function setup_highlights(mode)
-  local bg_normal_value, fg_normal_value = get_hl_value('Normal')
-  local bg_normal = Color.new(bg_normal_value)
-  local fg_normal = Color.new(fg_normal_value)
-  local cursor_line = Color.new(get_hl_value('CursorLine', 'bg'))
-  local fg_border_value = get_hl_value('FloatBorder', 'fg')
-  local line_nr = Color.new(get_hl_value('LineNr', 'fg'))
+  local normal_bg, normal_fg = get_hl_value('Normal')
+  local cursor_line_bg = get_hl_value('CursorLine', 'bg')
+  local border_fg = get_hl_value('FloatBorder', 'fg')
+  local line_nr_fg = get_hl_value('LineNr', 'fg')
 
-  if mode == 'brighten' then
-    local preview_bg = bg_normal:brighten(0.28)
-    local preview_cursor_line = cursor_line:brighten(0.28)
-    local preview_line_nr = line_nr:brighten(0.28)
-    local list_bg = bg_normal:brighten(0.43)
-    local list_filepath = fg_normal:darken(1.2)
-    local list_cursor_line = cursor_line:brighten(0.43)
-    local winbar_bg = bg_normal:brighten(0.53)
-    local indent = line_nr:brighten(0.15)
+  local factor = mode == 'brighten' and 1 or -1
 
-    set_hl('PreviewNormal', { bg = preview_bg })
-    set_hl('PreviewCursorLine', { bg = preview_cursor_line })
-    set_hl('PreviewLineNr', { fg = preview_line_nr })
-    set_hl('PreviewSignColumn', { fg = preview_bg })
-    set_hl('ListCursorLine', { bg = list_cursor_line })
-    set_hl('ListNormal', { bg = list_bg, fg = fg_normal_value })
-    set_hl('ListFilepath', { fg = list_filepath })
-    set_hl('WinBarFilename', { bg = winbar_bg, fg = fg_normal_value })
-    set_hl('WinBarFilepath', { bg = winbar_bg, fg = fg_normal:darken(1.15) })
-    set_hl('WinBarTitle', { bg = winbar_bg, fg = fg_normal_value })
-    set_hl('Indent', { fg = indent })
-    set_hl('FoldIcon', { fg = list_filepath })
-    set_hl('ListEndOfBuffer', { bg = list_bg, fg = list_bg })
-    set_hl('PreviewEndOfBuffer', { bg = preview_bg, fg = preview_bg })
-    set_hl('BorderTop', { bg = winbar_bg, fg = fg_border_value })
-    set_hl('ListBorderBottom', { bg = list_bg, fg = fg_border_value })
-    set_hl('PreviewBorderBottom', { bg = preview_bg, fg = fg_border_value })
-  else
-    local preview_bg = bg_normal:darken(0.25)
-    local preview_cursor_line = cursor_line:darken(0.25)
-    local list_bg = bg_normal:darken(0.4)
-    local list_filepath = fg_normal:darken(1.3)
-    local list_cursor_line = cursor_line:darken(0.4)
-    local winbar_bg = bg_normal:darken(0.5)
-    local indent = line_nr:darken(0.3)
+  local colors = {
+    preview = {
+      bg = create_color(normal_bg, 0.28 * factor),
+      cursor = create_color(cursor_line_bg, 0.28 * factor),
+      line_nr = create_color(line_nr_fg, 0.28 * factor),
+    },
+    list = {
+      bg = create_color(normal_bg, 0.43 * factor),
+      cursor = create_color(cursor_line_bg, 0.43 * factor),
+      filepath = create_color(normal_fg, -1.2),
+    },
+    winbar = {
+      bg = create_color(normal_bg, 0.53 * factor),
+      filepath = create_color(normal_fg, -1.2),
+    },
+    indent = create_color(line_nr_fg, 0.2 * factor),
+  }
 
-    set_hl('PreviewNormal', { bg = preview_bg })
-    set_hl('PreviewCursorLine', { bg = preview_cursor_line })
-    set_hl('PreviewSignColumn', { fg = preview_bg })
-    set_hl('ListCursorLine', { bg = list_cursor_line })
-    set_hl('ListNormal', { bg = list_bg, fg = fg_normal_value })
-    set_hl('ListFilepath', { fg = list_filepath })
-    set_hl('WinBarFilename', { bg = winbar_bg, fg = fg_normal_value })
-    set_hl('WinBarFilepath', { bg = winbar_bg, fg = fg_normal:darken(1.2) })
-    set_hl('WinBarTitle', { bg = winbar_bg, fg = fg_normal_value })
-    set_hl('Indent', { fg = indent })
-    set_hl('FoldIcon', { fg = list_filepath })
-    set_hl('ListEndOfBuffer', { bg = list_bg, fg = list_bg })
-    set_hl('PreviewEndOfBuffer', { bg = preview_bg, fg = preview_bg })
-    set_hl('BorderTop', { bg = winbar_bg, fg = fg_border_value })
-    set_hl('ListBorderBottom', { bg = list_bg, fg = fg_border_value })
-    set_hl('PreviewBorderBottom', { bg = preview_bg, fg = fg_border_value })
+  local highlights = {
+    PreviewNormal = { bg = colors.preview.bg },
+    PreviewCursorLine = { bg = colors.preview.cursor },
+    PreviewLineNr = { fg = colors.preview.line_nr },
+    PreviewSignColumn = { fg = colors.preview.bg },
+    ListCursorLine = { bg = colors.list.cursor },
+    ListNormal = { bg = colors.list.bg, fg = normal_fg },
+    ListFilepath = { fg = colors.list.filepath },
+    WinBarFilename = { bg = colors.winbar.bg, fg = normal_fg },
+    WinBarFilepath = { bg = colors.winbar.bg, fg = colors.winbar.filepath },
+    WinBarTitle = { bg = colors.winbar.bg, fg = normal_fg },
+    Indent = { fg = colors.indent },
+    FoldIcon = { fg = colors.list.filepath },
+    ListEndOfBuffer = { bg = colors.list.bg, fg = colors.list.bg },
+    PreviewEndOfBuffer = { bg = colors.preview.bg, fg = colors.preview.bg },
+    BorderTop = { bg = colors.winbar.bg, fg = border_fg },
+    ListBorderBottom = { bg = colors.list.bg, fg = border_fg },
+    PreviewBorderBottom = { bg = colors.preview.bg, fg = border_fg },
+  }
+
+  -- Apply highlights
+  for group, opts in pairs(highlights) do
+    set_hl(group, opts)
   end
 end
 
