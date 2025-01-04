@@ -392,7 +392,11 @@ Glance.actions = {
         })
       end
     end
-    vim.fn.setqflist(qf_items, 'r')
+    vim.fn.setqflist({}, ' ', {
+      items = qf_items,
+      nr = '$',
+      title = 'Glance',
+    })
     Glance.actions.close()
     if config.options.use_trouble_qf and pcall(require, 'trouble') then
       require('trouble').open('quickfix')
