@@ -7,6 +7,8 @@ Preview.__index = Preview
 
 local touched_buffers = {}
 
+local virt_text_ns = vim.api.nvim_create_namespace('glance-current-count')
+
 local winhl = {
   'Normal:GlancePreviewNormal',
   'CursorLine:GlancePreviewCursorLine',
@@ -45,7 +47,49 @@ local float_win_opts = {
 local function clear_hl(bufnr)
   if vim.api.nvim_buf_is_valid(bufnr) then
     vim.api.nvim_buf_clear_namespace(bufnr, config.namespace, 0, -1)
+    vim.api.nvim_buf_clear_namespace(bufnr, virt_text_ns, 0, -1)
   end
+end
+
+local function refresh_virtual_text(
+  bufnr,
+  winnr,
+  cur_index,
+  group_count,
+  total_count
+)
+  vim.api.nvim_buf_clear_namespace(bufnr, virt_text_ns, 0, -1)
+  if total_count == group_count then
+    vim.api.nvim_buf_set_extmark(
+      bufnr,
+      virt_text_ns,
+      vim.api.nvim_win_get_cursor(winnr)[1] - 1,
+      0,
+      {
+        virt_text = {
+          { '[' .. cur_index .. '/' .. total_count .. ']', 'NoiceVirtualText' },
+        },
+        virt_text_pos = 'eol',
+      }
+    )
+  else
+    vim.api.nvim_buf_set_extmark(
+      bufnr,
+      virt_text_ns,
+      vim.api.nvim_win_get_cursor(winnr)[1] - 1,
+      0,
+      {
+        virt_text = {
+          {
+            '[' .. cur_index .. '/' .. group_count .. '/' .. total_count .. ']',
+            'NoiceVirtualText',
+          },
+        },
+        virt_text_pos = 'eol',
+      }
+    )
+  end
+  vim.cmd('redraw')
 end
 
 function Preview.create(opts)
@@ -263,6 +307,13 @@ function Preview:update(item, group)
     { item.start_line + 1, item.start_col }
   )
 
+  refresh_virtual_text(
+    item.bufnr,
+    self.winnr,
+    item.index,
+    #group.items,
+    _G.Total_Count
+  )
   vim.api.nvim_win_call(self.winnr, function()
     vim.cmd('norm! zv')
     vim.cmd('norm! zz')
