@@ -81,20 +81,7 @@ function M.setup()
   end
 end
 
-local function client_position_params(params)
-  local win = vim.api.nvim_get_current_win()
-
-  return function(client)
-    local ret = vim.lsp.util.make_position_params(win, client.offset_encoding)
-    return vim.tbl_extend('force', ret, params or {})
-  end
-end
-
 local function make_position_params(params)
-  if vim.fn.has('nvim-0.11') ~= 0 then
-    return client_position_params(params)
-  end
-
   local ret = vim.lsp.util.make_position_params(0)
   return vim.tbl_extend('force', ret, params or {})
 end
