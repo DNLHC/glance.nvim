@@ -607,7 +607,9 @@ function Glance:close()
 end
 
 function Glance:destroy()
-  vim.api.nvim_buf_clear_namespace(self.parent_bufnr, layout_ns, 0, -1)
+  if vim.api.nvim_buf_is_valid(self.parent_bufnr) then
+    vim.api.nvim_buf_clear_namespace(self.parent_bufnr, layout_ns, 0, -1)
+  end
   self.list:destroy()
   self.preview:destroy()
   glance = {}
