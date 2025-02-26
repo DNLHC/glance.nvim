@@ -280,7 +280,11 @@ local function open(opts)
 
       local _jump = function(result)
         result = result or results[1]
-        vim.lsp.util.jump_to_location(result, client.offset_encoding)
+        vim.lsp.util.show_document(
+          result,
+          client.offset_encoding,
+          { focus = true }
+        )
       end
 
       local hooks = opts.hooks or config.options.hooks

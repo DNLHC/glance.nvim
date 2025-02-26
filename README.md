@@ -19,7 +19,7 @@ A pretty preview window for Neovim that provides VSCode-like peek preview functi
 ## Requirements
 
 - Properly configured LSP client
-- Neovim >= 0.7.0
+- Neovim >= 0.9.0
 
 ## Installation
 
