@@ -1,4 +1,4 @@
-*glance.txt*           For NVIM v0.8.0           Last change: 2024 December 23
+*glance.txt*           For NVIM v0.8.0           Last change: 2025 February 26
 
 ==============================================================================
 Table of Contents                                   *glance-table-of-contents*
@@ -35,7 +35,7 @@ FEATURES                                              *glance-glance-features*
 REQUIREMENTS                                      *glance-glance-requirements*
 
 - Properly configured LSP client
-- Neovim >= 0.7.0
+- Neovim >= 0.9.0
 
 
 INSTALLATION                                      *glance-glance-installation*
