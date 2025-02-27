@@ -7,10 +7,12 @@ function utils.create_push_tagstack(parent_winnr)
   local items = { { tagname = current_word, from = from } }
 
   return function()
-    vim.api.nvim_win_call(parent_winnr, function()
-      vim.cmd("norm! m'")
-      vim.fn.settagstack(parent_winnr, { items = items }, 't')
-    end)
+    if vim.api.nvim_win_is_valid(parent_winnr) then
+      vim.api.nvim_win_call(parent_winnr, function()
+        vim.cmd("norm! m'")
+        vim.fn.settagstack(parent_winnr, { items = items }, 't')
+      end)
+    end
   end
 end
 
