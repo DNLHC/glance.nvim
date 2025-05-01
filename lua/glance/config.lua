@@ -6,9 +6,9 @@ config.namespace = vim.api.nvim_create_namespace('Glance')
 config.hl_ns = 'Glance'
 
 ---@class GlancePreviewWinOpts
----@field enable boolean
----@field top_char string
----@field bottom_char string
+---@field cursorline boolean?
+---@field number boolean?
+---@field wrap boolean?
 
 ---@class GlanceListOpts
 ---@field position ('"left"' | '"right"')
