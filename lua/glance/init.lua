@@ -136,28 +136,53 @@ local function get_win_opts(winnr, line)
 end
 
 -- Creates virtual lines in the parent window to reserve space for the float preview.
--- Uses experimental neovim API that may change in the future `nvim__win_add_ns`
--- to set window-local extmarks
+-- Uses experimental neovim API `nvim__ns_set` to set window-local extmarks.
+-- This API may change in the future and should be checked for compatibility.
+--
+-- @param winnr number: The window number where virtual lines will be added
+-- @param start_row number: The starting row position for the virtual lines
+-- @return boolean: true if virtual lines were successfully added, false otherwise
 local function append_virtual_lines(winnr, start_row)
-  if not vim.api.nvim__win_add_ns then
-    return
+  -- Check if the experimental API is available
+  if not vim.api.nvim__ns_set then
+    return false
+  end
+
+  if not vim.api.nvim_win_is_valid(winnr) then
+    return false
+  end
+
+  if not start_row or start_row < 0 then
+    return false
   end
 
   local bufnr = vim.api.nvim_win_get_buf(winnr)
   local height = get_preview_layout_height(winnr)
 
-  local virt_lines = {}
-  for _ = 1, height do
-    table.insert(virt_lines, { { '', 'NonText' } })
+  if height <= 0 then
+    return true
   end
 
-  vim.api.nvim__win_add_ns(winnr, layout_ns)
+  local virt_lines = {}
 
-  vim.api.nvim_buf_set_extmark(bufnr, layout_ns, start_row, 0, {
-    virt_lines = virt_lines,
-    virt_lines_above = false,
-    scoped = true,
-  })
+  for i = 1, height do
+    virt_lines[i] = { { '', 'NonText' } }
+  end
+
+  vim.api.nvim__ns_set(layout_ns, { wins = { winnr } })
+
+  local ok =
+    pcall(vim.api.nvim_buf_set_extmark, bufnr, layout_ns, start_row, 0, {
+      virt_lines = virt_lines,
+      virt_lines_above = false,
+    })
+
+  if not ok then
+    -- TODO: Do a debug log with the error message
+    return false
+  end
+
+  return true
 end
 
 local function create(
