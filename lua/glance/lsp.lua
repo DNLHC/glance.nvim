@@ -33,11 +33,10 @@ local function create_handler(method)
         else
           cancel_all_requests()
           result = (
-            vim.fn.has('nvim-0.10.0') == 1 and vim.islist(result)
-            or vim.tbl_islist(result)
-          )
-              and result
+            (vim.fn.has "nvim-0.10.0" == 1 and vim.islist or vim.tbl_islist)(result)
+            and result
             or { result }
+          )
 
           return cb(result, ctx)
         end
