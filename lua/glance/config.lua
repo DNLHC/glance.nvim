@@ -6,6 +6,11 @@ config.namespace = vim.api.nvim_create_namespace('Glance')
 config.hl_ns = 'Glance'
 
 ---@class GlancePreviewWinOpts
+---@field cursorline boolean
+---@field number boolean
+---@field wrap boolean
+
+---@class GlanceBorder
 ---@field enable boolean
 ---@field top_char string
 ---@field bottom_char string
@@ -42,8 +47,9 @@ config.hl_ns = 'Glance'
 ---@class GlanceOpts
 ---@field height integer
 ---@field zindex integer
----@field detached (fun(winid: integer): boolean) | boolean)
+---@field detached (fun(winid: integer): boolean | boolean)
 ---@field preview_win_opts GlancePreviewWinOpts
+---@field border GlanceBorder
 ---@field list GlanceListOpts
 ---@field theme GlanceThemeOpts
 ---@field mappings GlanceMappingsOpts
