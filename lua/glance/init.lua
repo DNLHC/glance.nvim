@@ -78,10 +78,20 @@ end
 local function get_offset_top(winnr)
   local win_above = get_win_above(winnr)
   if winnr ~= win_above and not utils.is_float_win(win_above) then
-    -- plus 1 for the border
-    return vim.fn.winheight(win_above) + get_offset_top(win_above) + 1
+    local winbar_space = vim.api.nvim_win_call(winnr, function()
+      if vim.fn.has('nvim-0.8') ~= 0 then
+        return vim.o.winbar ~= '' and 1 or 0
+      end
+      return 0
+    end)
+    -- plus 1 for the border/statusline
+    return winbar_space
+      + vim.fn.winheight(win_above)
+      + get_offset_top(win_above)
+      + 1
   end
-  return 0
+  -- If the top win is not started from 1, it means there is(are) tabline(s).
+  return vim.fn.win_screenpos(winnr)[1] - 1
 end
 
 local function get_win_opts(winnr, line)
@@ -103,12 +113,8 @@ local function get_win_opts(winnr, line)
       return 0
     end)
 
-    local tabline_space = vim.api.nvim_win_call(winnr, function()
-      return vim.o.tabline ~= '' and 1 or 0
-    end)
-
     local offset = get_offset_top(winnr)
-    row = offset + line + winbar_space + tabline_space
+    row = offset + line + winbar_space
   end
 
   local win_opts = {
@@ -476,6 +482,7 @@ function Glance:create(opts)
   local list = require('glance.list').create({
     results = opts.results,
     parent_winnr = opts.winnr,
+    parent_bufnr = opts.bufnr,
     position_params = opts.params,
     method = opts.method,
     win_opts = list_win_opts,
@@ -590,7 +597,21 @@ end
 function Glance:toggle_fold(expand)
   local item = self.list:get_current_item()
 
-  if not item or self.list:is_flat() then
+  if not item then
+    return
+  end
+
+  -- Allow folding operations when the list is flat for call-hierarchy
+  -- methods since we render a flattened list where nesting is by call
+  -- relationships rather than file groups.
+  local allow_on_flat = (
+    self.list
+    and (
+      self.list.method == 'incoming_calls'
+      or self.list.method == 'outgoing_calls'
+    )
+  )
+  if self.list:is_flat() and not allow_on_flat then
     return
   end
 

@@ -11,6 +11,8 @@ A pretty preview window for Neovim that provides VSCode-like peek preview functi
   - Type definitions
   - References
   - Implementations
+  - Incoming calls
+  - Outgoing calls
 - Full editing capabilities within the preview window
 - Smart UI highlighting that adapts to your colorscheme
 - Intuitive UI
@@ -62,6 +64,8 @@ vim.keymap.set('n', 'gD', '<CMD>Glance definitions<CR>')
 vim.keymap.set('n', 'gR', '<CMD>Glance references<CR>')
 vim.keymap.set('n', 'gY', '<CMD>Glance type_definitions<CR>')
 vim.keymap.set('n', 'gM', '<CMD>Glance implementations<CR>')
+vim.keymap.set('n', 'gI', '<CMD>Glance incoming_calls<CR>')
+vim.keymap.set('n', 'gO', '<CMD>Glance outgoing_calls<CR>')
 ```
 
 <details>
@@ -72,6 +76,8 @@ nnoremap gR <CMD>Glance references<CR>
 nnoremap gD <CMD>Glance definitions<CR>
 nnoremap gY <CMD>Glance type_definitions<CR>
 nnoremap gM <CMD>Glance implementations<CR>
+nnoremap gI <CMD>Glance incoming_calls<CR>
+nnoremap gO <CMD>Glance outgoing_calls<CR>
 ```
 
 </details>

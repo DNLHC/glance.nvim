@@ -282,7 +282,7 @@ local function process_locations(locations, position_params, offset_encoding)
   for _, location in ipairs(locations) do
     local uri = location.uri or location.targetUri
     local range = location.range or location.targetSelectionRange
-    table.insert(grouped[uri], { start = range.start, finish = range['end'] })
+    table.insert(grouped[uri], { start = range.start, finish = range['end'], src = location })
   end
 
   local keys = vim.tbl_keys(grouped)
@@ -315,6 +315,7 @@ local function process_locations(locations, position_params, offset_encoding)
       local is_unreachable = false
       local start = position.start
       local finish = position.finish
+      local src = position.src
       local start_col = start.character
       local end_col = finish.character
       local row = start.line
@@ -358,6 +359,11 @@ local function process_locations(locations, position_params, offset_encoding)
           uri,
           { start = start, finish = finish }
         ),
+        -- depth for nested rendering (top-level items start at 0)
+        depth = 0,
+        -- preserve any call metadata returned by the LSP handler
+        call = src and src.call or nil,
+        call_item = src and src.call_item or nil,
       }
 
       table.insert(result[filename].items, location)
@@ -372,6 +378,10 @@ local function get_lsp_method_label(method_name)
 end
 
 function List:setup(opts)
+  self.parent_bufnr = opts.parent_bufnr
+  self.method = opts.method
+  self.offset_encoding = opts.offset_encoding
+
   self.groups =
     process_locations(opts.results, opts.position_params, opts.offset_encoding)
   local group, location =
@@ -428,36 +438,47 @@ end
 function List:render(groups)
   local renderer = Renderer:new(self.bufnr)
   local icons = config.options.folds
-
-  if vim.tbl_count(groups) > 1 then
-    for filename, group in pairs(groups) do
-      self.items[renderer.line_nr + 1] = {
-        filename = filename,
-        uri = group.uri,
-        is_group = true,
-        count = #group.items,
-      }
-
-      local is_folded = folds.is_folded(filename)
-      local fold_icon = is_folded and icons.fold_closed or icons.fold_open
-
-      renderer:append(string.format(' %s ', fold_icon), 'FoldIcon')
-      renderer:append(vim.fn.fnamemodify(filename, ':t'), 'ListFilename', ' ')
-      renderer:append(
-        vim.fn.fnamemodify(filename, ':p:.:h'),
-        'ListFilepath',
-        ' '
-      )
-      renderer:append(string.format(' %d ', #group.items), 'ListCount', ' ')
-      renderer:nl()
-
-      if not is_folded then
-        self:render_locations(group.items, renderer, true)
+  -- For call-hierarchy methods, render a single flattened list of locations
+  -- (call relationships are represented via nested folds) instead of file groups.
+  if self.method == 'incoming_calls' or self.method == 'outgoing_calls' then
+    local combined = { items = {} }
+    for _, group in pairs(groups) do
+      for _, item in ipairs(group.items) do
+        table.insert(combined.items, item)
       end
     end
+    self:render_locations(combined.items, renderer, true)
   else
-    local _, group = next(groups)
-    self:render_locations(group.items, renderer, false)
+    if vim.tbl_count(groups) > 1 then
+      for filename, group in pairs(groups) do
+        self.items[renderer.line_nr + 1] = {
+          filename = filename,
+          uri = group.uri,
+          is_group = true,
+          count = #group.items,
+        }
+
+        local is_folded = folds.is_folded(filename)
+        local fold_icon = is_folded and icons.fold_closed or icons.fold_open
+
+        renderer:append(string.format(' %s ', fold_icon), 'FoldIcon')
+        renderer:append(vim.fn.fnamemodify(filename, ':t'), 'ListFilename', ' ')
+        renderer:append(
+          vim.fn.fnamemodify(filename, ':p:.:h'),
+          'ListFilepath',
+          ' '
+        )
+        renderer:append(string.format(' %d ', #group.items), 'ListCount', ' ')
+        renderer:nl()
+
+        if not is_folded then
+          self:render_locations(group.items, renderer, true)
+        end
+      end
+    else
+      local _, group = next(groups)
+      self:render_locations(group.items, renderer, false)
+    end
   end
 
   renderer:render()
@@ -469,13 +490,38 @@ function List:render_locations(locations, renderer, render_indent_line)
 
   for _, location in ipairs(locations) do
     self.items[renderer.line_nr + 1] = location
+    -- indentation based on nesting depth
+    local depth = location.depth or 0
+    local indent_unit = ' '
+    local indent = string.rep(indent_unit, depth)
 
-    local indent = ' '
-    if opts.indent_lines.enable and render_indent_line then
-      indent = string.format(' %s  ', opts.indent_lines.icon)
+    -- append base indent
+    renderer:append(indent, 'Indent')
+
+    -- optionally append the vertical indent icon aligned before the fold icon
+    -- don't draw the file-level vertical indent in call-hierarchy flat mode
+    local draw_indent_icon = opts.indent_lines.enable and render_indent_line
+      and not (self.method == 'incoming_calls' or self.method == 'outgoing_calls')
+
+    if draw_indent_icon then
+      renderer:append(' ', 'Indent')
+      renderer:append(opts.indent_lines.icon, 'Indent')
+      renderer:append(' ', 'Indent')
+    else
+      renderer:append(' ', 'Indent')
     end
 
-    renderer:append(indent, 'Indent')
+    -- call nodes show a fold icon and can be expanded on demand
+    if location.call or location.call_item then
+      local fold_key = string.format('%s:%s:%d:%d', self.method, location.uri, location.start_line, location.start_col)
+      location.fold_key = fold_key
+
+      local icons = config.options.folds
+      local is_folded = folds.is_folded(fold_key)
+      local fold_icon = is_folded and icons.fold_closed or icons.fold_open
+      -- append fold icon without a leading space so it sits right after the indent icon
+      renderer:append(string.format('%s ', fold_icon), 'FoldIcon')
+    end
 
     if location.preview_line then
       local preview_line = location.preview_line.value
@@ -585,7 +631,22 @@ end
 
 function List:get_active_group(opts)
   local current_location = opts.location or self:get_current_item()
-  return self.groups[current_location.filename]
+  local group = self.groups[current_location.filename]
+  if group then
+    return group
+  end
+
+  -- fallback: try to find the group that contains the location
+  for _, g in pairs(self.groups) do
+    for _, it in ipairs(g.items) do
+      if it == current_location or (it.uri == current_location.uri and it.start_line == current_location.start_line and it.start_col == current_location.start_col) then
+        return g
+      end
+    end
+  end
+
+  -- last resort: return a synthetic group with only the current location
+  return { items = { current_location } }
 end
 
 function List:is_flat()
@@ -593,39 +654,262 @@ function List:is_flat()
 end
 
 function List:toggle_fold(item)
-  if folds.is_folded(item.filename) then
-    self:open_fold(item)
-  else
-    self:close_fold(item)
+  
+
+  -- support both filename-based groups and nested call nodes
+  if item.is_group then
+    if folds.is_folded(item.filename) then
+      self:open_fold(item)
+    else
+      self:close_fold(item)
+    end
+    return
+  end
+
+  if item.fold_key then
+    if folds.is_folded(item.fold_key) then
+      self:open_fold(item)
+    else
+      self:close_fold(item)
+    end
   end
 end
 
 function List:open_fold(item)
-  if not folds.is_folded(item.filename) then
+  -- open filename group
+  if item.is_group then
+    if not folds.is_folded(item.filename) then
+      return
+    end
+    folds.open(item.filename)
+    self:update(self.groups)
     return
   end
 
-  folds.open(item.filename)
-  self:update(self.groups)
+  -- open call-node fold
+  if item.fold_key then
+    if not folds.is_folded(item.fold_key) then
+      return
+    end
+
+    -- mark open immediately so UI can show the open icon
+    folds.open(item.fold_key)
+
+    -- if children already loaded just re-render
+    if item._children_loaded then
+      self:update(self.groups)
+      return
+    end
+
+    -- fetch nested calls from LSP for this call_item
+    local lsp = require('glance.lsp')
+    local bufnr = self.parent_bufnr or vim.api.nvim_get_current_buf()
+    -- If we have a cached children subtree, restore it instead of fetching
+    if item._children_cache and #item._children_cache > 0 then
+      -- find the group that currently contains the item
+      local group = nil
+      local parent_index = nil
+      for _, g in pairs(self.groups) do
+        for i, v in ipairs(g.items) do
+          if v == item or (v.uri == item.uri and v.start_line == item.start_line and v.start_col == item.start_col) then
+            group = g
+            parent_index = i
+            break
+          end
+        end
+        if group then
+          break
+        end
+      end
+
+      if group and parent_index then
+        local new_items = {}
+        for i = 1, #group.items do
+          table.insert(new_items, group.items[i])
+          if i == parent_index then
+            for _, c in ipairs(item._children_cache) do
+              table.insert(new_items, c)
+            end
+          end
+        end
+        group.items = new_items
+        item._children_loaded = true
+        -- keep cache for future collapses
+        self:update(self.groups)
+        return
+      else
+        -- fallback to fetching
+      end
+    end
+
+    lsp.fetch_calls_for_item(self.method, bufnr, item.call_item, function(results)
+      -- build child entries from results and insert after the parent in the group's items
+        -- find the group that currently contains the item
+        local group = nil
+        local parent_index = nil
+        for _, g in pairs(self.groups) do
+          for i, v in ipairs(g.items) do
+            if v == item or (v.uri == item.uri and v.start_line == item.start_line and v.start_col == item.start_col) then
+              group = g
+              parent_index = i
+              break
+            end
+          end
+          if group then
+            break
+          end
+        end
+
+        if not group or not parent_index then
+          self:update(self.groups)
+          return
+        end
+
+      local children = {}
+      local depth = (item.depth or 0) + 1
+      for _, loc in ipairs(results or {}) do
+        local uri = loc.uri or loc.targetUri
+        local range = loc.range or loc.targetSelectionRange
+        local bufn = vim.uri_to_bufnr(uri)
+        local row = range.start.line
+        local lines = get_lines(bufn, uri, { row })
+        local line = lines and lines[row]
+        local start_col = range.start.character
+        local end_col = range['end'].character
+        local preview_line = nil
+        local is_unreachable = false
+        if line then
+          start_col = utils.get_line_byte_from_position(line, range.start, self.offset_encoding)
+          end_col = utils.get_line_byte_from_position(line, range['end'], self.offset_encoding)
+          preview_line = get_preview_line({ start_line = row, start_col = start_col, end_col = end_col, end_line = range['end'].line }, 8, line)
+        else
+          line = ('%s:%d:%d'):format(vim.fn.fnamemodify(vim.uri_to_fname(uri), ':t'), start_col + 1, end_col + 1)
+          is_unreachable = true
+        end
+
+        table.insert(children, {
+          filename = vim.uri_to_fname(uri),
+          bufnr = bufn,
+          uri = uri,
+          preview_line = preview_line,
+          is_unreachable = is_unreachable,
+          full_text = line or '',
+          start_line = range.start.line,
+          end_line = range['end'].line,
+          start_col = start_col,
+          end_col = end_col,
+          depth = depth,
+          call = loc.call,
+          call_item = loc.call_item,
+        })
+      end
+
+      -- insert children into group's items
+      local new_items = {}
+      for i = 1, #group.items do
+        table.insert(new_items, group.items[i])
+        if i == parent_index then
+          for _, c in ipairs(children) do
+            table.insert(new_items, c)
+          end
+        end
+      end
+      group.items = new_items
+      item._children_loaded = true
+
+      -- re-render and restore cursor to parent line
+      self:update(self.groups)
+      for ln, it in pairs(self.items) do
+        if it == item or (it.uri == item.uri and it.start_line == item.start_line and it.start_col == item.start_col) then
+          vim.api.nvim_win_set_cursor(self.winnr, { ln, self:get_col() })
+          break
+        end
+      end
+    end)
+  end
 end
 
 function List:close_fold(item)
-  if folds.is_folded(item.filename) then
-    return
-  end
-
-  local current_line = self:get_line()
-  folds.close(item.filename)
-  self:update(self.groups)
-
+  -- close filename group
   if item.is_group then
+    if folds.is_folded(item.filename) then
+      return
+    end
+    local current_line = self:get_line()
+    folds.close(item.filename)
+    self:update(self.groups)
     return
   end
 
-  vim.api.nvim_win_set_cursor(self.winnr, {
-    math.max(current_line - item.index, 1),
-    self:get_col(),
-  })
+  -- close call-node fold: remove its children from the group's items
+  if item.fold_key then
+    if folds.is_folded(item.fold_key) then
+      return
+    end
+    local current_line = self:get_line()
+    folds.close(item.fold_key)
+    -- find the group that currently contains the item
+    local group = nil
+    local parent_index = nil
+    for _, g in pairs(self.groups) do
+      for i, v in ipairs(g.items) do
+        if v == item or (v.uri == item.uri and v.start_line == item.start_line and v.start_col == item.start_col) then
+          group = g
+          parent_index = i
+          break
+        end
+      end
+      if group then
+        break
+      end
+    end
+
+    if group and parent_index then
+      local parent_depth = item.depth or 0
+      -- collect children slice for caching
+      local children_slice = {}
+      local i = parent_index + 1
+      while i <= #group.items and (group.items[i].depth or 0) > parent_depth do
+        table.insert(children_slice, group.items[i])
+        i = i + 1
+      end
+
+      -- cache children on the parent so we can restore nested expansions later
+      if #children_slice > 0 then
+        item._children_cache = children_slice
+      else
+        item._children_cache = nil
+      end
+
+      -- rebuild group's items without the children slice
+      local new_items = {}
+      i = 1
+      while i <= #group.items do
+        if i == parent_index then
+          table.insert(new_items, group.items[i])
+          i = i + 1
+          -- skip the cached children
+          while i <= #group.items and (group.items[i].depth or 0) > parent_depth do
+            i = i + 1
+          end
+        else
+          table.insert(new_items, group.items[i])
+          i = i + 1
+        end
+      end
+      group.items = new_items
+      -- mark children as unloaded so reopening will either restore cache or refetch
+      item._children_loaded = false
+    end
+
+    self:update(self.groups)
+
+    -- restore cursor roughly to parent line
+    vim.api.nvim_win_set_cursor(self.winnr, {
+      math.max(current_line - (item.index or 0), 1),
+      self:get_col(),
+    })
+  end
 end
 
 return List
