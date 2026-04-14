@@ -26,8 +26,12 @@ function Winbar:render(section_values)
 
   local winbar_value = ''
   for section, value in pairs(section_values) do
-    winbar_value =
-      string.format('%s%%#%s# %s', winbar_value, self.sections[section], value)
+    winbar_value = string.format(
+      '%s%%#%s# %s',
+      winbar_value,
+      self.sections[section],
+      tostring(value):gsub('%%', '%%%%')
+    )
   end
 
   self.last_values = section_values
