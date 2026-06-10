@@ -218,6 +218,11 @@ local function get_lines(bufnr, uri, rows)
   local data = vim.loop.fs_read(fd, stat.size, 0)
   vim.loop.fs_close(fd)
 
+  if data == nil then
+    vim.fn.bufload(bufnr)
+    return buf_lines()
+  end
+
   local lines = {} -- rows we need to retrieve
   local rows_needed = 0 -- keep track of how many unique rows we need
   for _, row in pairs(rows) do
