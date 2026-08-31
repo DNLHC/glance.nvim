@@ -1,4 +1,5 @@
 local utils = {}
+local uv = vim.uv or vim.loop
 
 function utils.create_push_tagstack(parent_winnr)
   local pos = vim.api.nvim_win_get_cursor(0)
@@ -189,7 +190,7 @@ end
 --@returns (function, timer) throttled function and timer. Remember to call
 ---`timer:close()` at the end or you will leak memory!
 function utils.throttle_leading(fn, ms)
-  local timer = vim.loop.new_timer()
+  local timer = uv.new_timer()
   local running = false
 
   local function wrapped_fn(...)

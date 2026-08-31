@@ -5,6 +5,7 @@ local Range = require('glance.range')
 local folds = require('glance.folds')
 local config = require('glance.config')
 local utils = require('glance.utils')
+local uv = vim.uv or vim.loop
 local List = {}
 List.__index = List
 
@@ -208,15 +209,15 @@ local function get_lines(bufnr, uri, rows)
   local filename = vim.api.nvim_buf_get_name(bufnr)
 
   -- get the data from the file
-  local fd = vim.loop.fs_open(filename, 'r', 438)
+  local fd = uv.fs_open(filename, 'r', 438)
 
   if not fd then
     return nil
   end
 
-  local stat = vim.loop.fs_fstat(fd)
-  local data = vim.loop.fs_read(fd, stat.size, 0)
-  vim.loop.fs_close(fd)
+  local stat = uv.fs_fstat(fd)
+  local data = uv.fs_read(fd, stat.size, 0)
+  uv.fs_close(fd)
 
   if data == nil then
     vim.fn.bufload(bufnr)
