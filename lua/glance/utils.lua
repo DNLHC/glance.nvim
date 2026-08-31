@@ -23,6 +23,22 @@ function utils.is_float_win(winnr)
   return vim.api.nvim_win_get_config(winnr).zindex ~= nil
 end
 
+function utils.validate(name, value, validator, optional)
+  local message
+  if type(validator) == 'table' then
+    message = validator[3]
+    validator = validator[2]
+  end
+
+  if vim.fn.has('nvim-0.11') == 1 then
+    vim.validate(name, value, validator, optional, message)
+  elseif message then
+    vim.validate({ [name] = { value, validator, message } })
+  else
+    vim.validate({ [name] = { value, validator, optional } })
+  end
+end
+
 function utils.valid_enum(arg, values, optional)
   return {
     arg,
