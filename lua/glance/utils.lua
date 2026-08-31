@@ -122,13 +122,13 @@ end
 
 function utils.win_set_options(winnr, opts)
   for opt, value in pairs(opts) do
-    vim.api.nvim_win_set_option(winnr, opt, value)
+    vim.api.nvim_set_option_value(opt, value, { win = winnr })
   end
 end
 
 function utils.buf_set_options(bufnr, opts)
   for opt, value in pairs(opts) do
-    vim.api.nvim_buf_set_option(bufnr, opt, value)
+    vim.api.nvim_set_option_value(opt, value, { buf = bufnr })
   end
 end
 

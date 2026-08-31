@@ -91,8 +91,8 @@ function Preview:on_attach_buffer(bufnr)
         local is_listed = vim.fn.buflisted(bufnr) == 1
 
         if is_active_buffer and not is_listed then
-          vim.api.nvim_buf_set_option(bufnr, 'buflisted', true)
-          vim.api.nvim_buf_set_option(bufnr, 'bufhidden', '')
+          vim.api.nvim_set_option_value('buflisted', true, { buf = bufnr })
+          vim.api.nvim_set_option_value('bufhidden', '', { buf = bufnr })
         end
       end,
       1000
@@ -153,14 +153,14 @@ end
 function Preview:restore_win_opts()
   for opt, _ in pairs(win_opts) do
     if not vim.tbl_contains(float_win_opts, opt) then
-      local value = vim.api.nvim_win_get_option(self.parent_winnr, opt)
-      vim.api.nvim_win_set_option(self.winnr, opt, value)
+      local value = vim.api.nvim_get_option_value(opt, { win = self.parent_winnr })
+      vim.api.nvim_set_option_value(opt, value, { win = self.winnr })
     end
   end
 
   for _, opt in ipairs(float_win_opts) do
-    local value = vim.api.nvim_win_get_option(self.parent_winnr, opt)
-    vim.api.nvim_win_set_option(self.winnr, opt, value)
+    local value = vim.api.nvim_get_option_value(opt, { win = self.parent_winnr })
+    vim.api.nvim_set_option_value(opt, value, { win = self.winnr })
   end
 end
 
@@ -252,7 +252,7 @@ function Preview:update(item, group)
     end
 
     vim.api.nvim_buf_call(item.bufnr, function()
-      if vim.api.nvim_buf_get_option(item.bufnr, 'filetype') == '' then
+      if vim.api.nvim_get_option_value('filetype', { buf = item.bufnr }) == '' then
         vim.cmd('do BufRead')
       end
     end)
