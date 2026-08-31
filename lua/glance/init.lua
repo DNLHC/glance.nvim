@@ -330,9 +330,11 @@ Glance.actions = {
     glance:destroy()
   end,
   enter_win = function(win)
-    vim.validate({
-      win = utils.valid_enum(win, { 'preview', 'list' }, false),
-    })
+    utils.validate(
+      'win',
+      win,
+      utils.valid_enum(win, { 'preview', 'list' }, false)
+    )
     return function()
       if not is_open() then
         return
@@ -364,14 +366,12 @@ Glance.actions = {
     glance:update_preview(item)
   end,
   preview_scroll_win = function(distance)
-    vim.validate({
-      distance = {
-        distance,
-        function(v)
-          return type(v) == 'number' and v ~= 0
-        end,
-        'valid number',
-      },
+    utils.validate('distance', distance, {
+      distance,
+      function(v)
+        return type(v) == 'number' and v ~= 0
+      end,
+      'valid number',
     })
 
     return function()
@@ -398,9 +398,7 @@ Glance.actions = {
   open = function(method, opts)
     local commands = vim.tbl_keys(require('glance.lsp').methods)
     table.insert(commands, 'resume')
-    vim.validate({
-      method = utils.valid_enum(method, commands, false),
-    })
+    utils.validate('method', method, utils.valid_enum(method, commands, false))
     -- Manually call the setup in case user hasn't initialized the plugin
     -- It will only run once
     Glance.setup()
@@ -645,11 +643,9 @@ function Glance:destroy()
 end
 
 Glance.register_method = function(method)
-  vim.validate({
-    name = { method.name, 'string' },
-    label = { method.label, 'string' },
-    method = { method.method, 'string' },
-  })
+  utils.validate('name', method.name, 'string')
+  utils.validate('label', method.label, 'string')
+  utils.validate('method', method.method, 'string')
 
   if lsp.methods[method.name] then
     return utils.error(("method '%s' already registered"):format(method.name))

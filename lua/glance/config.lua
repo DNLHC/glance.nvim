@@ -138,19 +138,26 @@ function config.setup(user_config, actions)
   config.options.winbar.enable = opts.winbar.enable
     and vim.fn.has('nvim-0.8') ~= 0
 
-  vim.validate({
-    height = { opts.height, 'n', false },
-    preserve_win_context = { opts.preserve_win_context, 'b', false },
-    list = { opts.list, 't', false },
-    position = utils.valid_enum(opts.list.position, { 'left', 'right' }, false),
-    width = { opts.list.width, 'n', false },
-    theme = { opts.theme, 't', false },
-    mode = utils.valid_enum(
-      opts.theme.mode,
-      { 'darken', 'brighten', 'auto' },
-      false
-    ),
-  })
+  utils.validate('height', opts.height, 'number', false)
+  utils.validate(
+    'preserve_win_context',
+    opts.preserve_win_context,
+    'boolean',
+    false
+  )
+  utils.validate('list', opts.list, 'table', false)
+  utils.validate(
+    'position',
+    opts.list.position,
+    utils.valid_enum(opts.list.position, { 'left', 'right' }, false)
+  )
+  utils.validate('width', opts.list.width, 'number', false)
+  utils.validate('theme', opts.theme, 'table', false)
+  utils.validate(
+    'mode',
+    opts.theme.mode,
+    utils.valid_enum(opts.theme.mode, { 'darken', 'brighten', 'auto' }, false)
+  )
 
   if opts.preserve_win_context and vim.fn.has('nvim-0.10.0') == 0 then
     config.options.preserve_win_context = false
