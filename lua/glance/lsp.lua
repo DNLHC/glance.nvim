@@ -2,6 +2,8 @@ local utils = require('glance.utils')
 
 local M = {}
 
+local islist = vim.islist or vim.tbl_islist
+
 local function create_handler(method)
   return function(bufnr, params, cb)
     local _client_request_ids, cancel_all_requests, client_request_ids
@@ -32,12 +34,7 @@ local function create_handler(method)
           client_request_ids[ctx.client_id] = nil
         else
           cancel_all_requests()
-          result = (
-            vim.fn.has('nvim-0.10.0') == 1 and vim.islist(result)
-            or vim.tbl_islist(result)
-          )
-              and result
-            or { result }
+          result = islist(result) and result or { result }
 
           return cb(result, ctx)
         end
