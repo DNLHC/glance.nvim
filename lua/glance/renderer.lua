@@ -17,14 +17,10 @@ end
 
 function Renderer:highlight()
   for _, line in ipairs(self.hl) do
-    vim.api.nvim_buf_add_highlight(
-      self.bufnr,
-      config.namespace,
-      line.group,
-      line.line_nr,
-      line.from,
-      line.to
-    )
+    vim.api.nvim_buf_set_extmark(self.bufnr, config.namespace, line.line_nr, line.from, {
+      end_col = line.to,
+      hl_group = line.group,
+    })
   end
 end
 

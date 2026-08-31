@@ -209,16 +209,18 @@ function Preview:hl_buf(location)
       end_col = location.end_col
     end
 
+    if end_col == -1 then
+      end_col = #(vim.api.nvim_buf_get_lines(location.bufnr, row, row + 1, false)[1] or '')
+    end
+
     local match_hl = vim.fn.has('nvim-0.8') == 1 and 'None' or 'PreviewMatch'
 
-    vim.api.nvim_buf_add_highlight(
-      location.bufnr,
-      config.namespace,
-      config.hl_ns .. match_hl,
-      row,
-      start_col,
-      end_col
-    )
+    vim.api.nvim_buf_set_extmark(location.bufnr, config.namespace, row, start_col, {
+      end_row = row,
+      end_col = end_col,
+      hl_group = config.hl_ns .. match_hl,
+      strict = false,
+    })
   end
 end
 
