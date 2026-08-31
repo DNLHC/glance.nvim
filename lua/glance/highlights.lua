@@ -26,26 +26,25 @@ local extract_colors = {
 }
 
 local function get_hl_value(name, attr)
-  local ok, hl = pcall(vim.api.nvim_get_hl_by_name, name, true)
+  local ok, hl = pcall(vim.api.nvim_get_hl, 0, { name = name, link = false })
 
   if not ok then
     return 'NONE'
   end
 
   if hl.reverse then
-    hl.background = hl.foreground and '#' .. bit.tohex(hl.foreground, 6)
-    hl.foreground = get_hl_value('Normal', 'bg')
+    hl.bg = hl.fg and '#' .. bit.tohex(hl.fg, 6)
+    hl.fg = get_hl_value('Normal', 'bg')
   else
-    hl.foreground = hl.foreground and '#' .. bit.tohex(hl.foreground, 6)
-    hl.background = hl.background and '#' .. bit.tohex(hl.background, 6)
+    hl.fg = hl.fg and '#' .. bit.tohex(hl.fg, 6)
+    hl.bg = hl.bg and '#' .. bit.tohex(hl.bg, 6)
   end
 
   if attr then
-    attr = ({ bg = 'background', fg = 'foreground' })[attr] or attr
     return hl[attr] or 'NONE'
   end
 
-  return hl.background, hl.foreground
+  return hl.bg, hl.fg
 end
 
 local function is_bright_background(color)
