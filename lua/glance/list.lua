@@ -39,12 +39,32 @@ function List.create(opts)
   local winnr = vim.api.nvim_open_win(bufnr, true, opts.win_opts)
 
   local list = List:new(bufnr, winnr)
-  utils.win_set_options(winnr, win_opts)
+  list:set_win_options()
   utils.buf_set_options(bufnr, buf_opts)
   list:setup(opts)
   list:set_keymaps()
 
   return list
+end
+
+function List:set_win_options()
+  utils.win_set_options(self.winnr, win_opts)
+end
+
+function List:set_win_config(win_config)
+  local previous_opts = {}
+  for opt in pairs(win_opts) do
+    previous_opts[opt] =
+      vim.api.nvim_get_option_value(opt, { win = self.winnr })
+  end
+
+  vim.api.nvim_win_set_config(self.winnr, win_config)
+
+  for opt, value in pairs(previous_opts) do
+    if vim.api.nvim_get_option_value(opt, { win = self.winnr }) ~= value then
+      vim.api.nvim_set_option_value(opt, value, { win = self.winnr })
+    end
+  end
 end
 
 function List:new(bufnr, winnr)
