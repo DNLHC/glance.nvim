@@ -511,7 +511,7 @@ end
 function Glance:on_resize()
   local list_win_opts, preview_win_opts =
     get_win_opts(self.parent_winnr, self.row)
-  vim.api.nvim_win_set_config(self.list.winnr, list_win_opts)
+  self.list:set_win_config(list_win_opts)
   vim.api.nvim_win_set_config(self.preview.winnr, preview_win_opts)
 end
 
