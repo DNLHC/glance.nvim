@@ -11,6 +11,7 @@ local winhl = {
   'Normal:GlancePreviewNormal',
   'CursorLine:GlancePreviewCursorLine',
   'SignColumn:GlancePreviewSignColumn',
+  'FoldColumn:GlancePreviewFoldColumn',
   'EndOfBuffer:GlancePreviewEndOfBuffer',
   'LineNr:GlancePreviewLineNr',
 }

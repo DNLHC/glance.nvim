@@ -98,6 +98,7 @@ local function setup_highlights(mode)
     PreviewCursorLine = { bg = colors.preview.cursor },
     PreviewLineNr = { fg = colors.preview.line_nr },
     PreviewSignColumn = { fg = colors.preview.bg },
+    PreviewFoldColumn = { bg = colors.preview.bg },
     ListCursorLine = { bg = colors.list.cursor },
     ListNormal = { bg = colors.list.bg, fg = normal_fg },
     ListFilepath = { fg = colors.list.filepath },

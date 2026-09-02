@@ -399,6 +399,7 @@ Called after the Glance window closes.
 - `GlancePreviewMatch`
 - `GlancePreviewCursorLine`
 - `GlancePreviewSignColumn`
+- `GlancePreviewFoldColumn`
 - `GlancePreviewEndOfBuffer`
 - `GlancePreviewLineNr`
 - `GlancePreviewBorderBottom`
