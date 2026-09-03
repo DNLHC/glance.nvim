@@ -221,9 +221,16 @@ local function create(
       )
 
       if left_preview and left_list then
+        local closing_glance = glance
         vim.api.nvim_del_autocmd(Glance.cleanup)
         Glance.cleanup = 0
-        Glance.actions.close()
+
+        -- A new split inherits the Glance buffer until its caller configures it.
+        vim.schedule(function()
+          if glance == closing_glance then
+            Glance.actions.close()
+          end
+        end)
       end
     end,
   })
@@ -619,7 +626,11 @@ function Glance:close()
     vim.api.nvim_del_autocmd(self.cleanup)
   end
 
-  if vim.api.nvim_win_is_valid(self.parent_winnr) then
+  local current_winnr = vim.api.nvim_get_current_win()
+  local in_glance = current_winnr == self.list.winnr
+    or current_winnr == self.preview.winnr
+
+  if in_glance and vim.api.nvim_win_is_valid(self.parent_winnr) then
     vim.api.nvim_set_current_win(self.parent_winnr)
   end
 
